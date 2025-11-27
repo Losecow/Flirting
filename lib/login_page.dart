@@ -105,13 +105,13 @@ class ResponsiveLoginPage extends StatelessWidget {
             ),
           ),
           SizedBox(height: screenSize.height * 0.01),
-          Text(
-            'login ha sem mosol dlc a.',
-            style: TextStyle(
-              color: const Color(0xFFE94B9A).withOpacity(0.7),
-              fontSize: 13,
-            ),
-          ),
+          // Text(
+          //   'login ha sem mosol dlc a.',
+          //   style: TextStyle(
+          //     color: const Color(0xFFE94B9A).withOpacity(0.7),
+          //     fontSize: 13,
+          //   ),
+          // ),
           SizedBox(height: screenSize.height * 0.025),
           _buildTextField(label: 'ID', hint: 'ID를 입력하세요'),
           SizedBox(height: screenSize.height * 0.02),

@@ -15,6 +15,8 @@ class _InfoPageState extends State<InfoPage> {
 
   @override
   Widget build(BuildContext context) {
+    final Size screenSize = MediaQuery.of(context).size;
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF3EFF8),
       appBar: AppBar(
@@ -24,25 +26,33 @@ class _InfoPageState extends State<InfoPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black54),
           onPressed: () => Navigator.of(context).pop(), // 뒤로가기 기능
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.photo_camera_outlined, color: Colors.black54),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 10),
-        ],
+        actions: const [], // 카메라 아이콘 제거
       ),
-      body: Center(
-        child: _buildInfoCard(context),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: screenSize.width * 0.05,
+            vertical: screenSize.height * 0.03,
+          ),
+          child: Center(
+            child: _buildInfoCard(context),
+          ),
+        ),
       ),
     );
   }
 
   // 정보 입력 카드 위젯
   Widget _buildInfoCard(BuildContext context) {
+    final Size screenSize = MediaQuery.of(context).size;
+    
     return Container(
-      width: MediaQuery.of(context).size.width * 0.85,
-      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 40),
+      width: double.infinity,
+      constraints: BoxConstraints(maxWidth: screenSize.width * 0.9),
+      padding: EdgeInsets.symmetric(
+        horizontal: screenSize.width * 0.06,
+        vertical: screenSize.height * 0.03,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
@@ -62,20 +72,20 @@ class _InfoPageState extends State<InfoPage> {
             '학교 정보 설정',
             style: TextStyle(
               color: Color(0xFFE94B9A),
-              fontSize: 24,
+              fontSize: 28,
               fontFamily: 'Bagel Fat One',
               fontWeight: FontWeight.w400,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: screenSize.height * 0.015),
           const Text(
             '소속 학교와 전공을 선택해주세요',
             style: TextStyle(
               color: Colors.grey,
-              fontSize: 14,
+              fontSize: 13,
             ),
           ),
-          const SizedBox(height: 30),
+          SizedBox(height: screenSize.height * 0.03),
 
           // 학교 선택 드롭다운 메뉴
           _buildDropdownField(
@@ -89,7 +99,7 @@ class _InfoPageState extends State<InfoPage> {
               });
             },
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: screenSize.height * 0.02),
 
           // 전공 선택 드롭다운 메뉴
           _buildDropdownField(
@@ -103,7 +113,7 @@ class _InfoPageState extends State<InfoPage> {
               });
             },
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: screenSize.height * 0.03),
 
           // Next 버튼
           _buildNextButton(context),
@@ -127,7 +137,7 @@ class _InfoPageState extends State<InfoPage> {
           label,
           style: const TextStyle(
             color: Color(0xFFC48EC4),
-            fontSize: 16,
+            fontSize: 15,
             fontFamily: 'Bagel Fat One',
             fontWeight: FontWeight.w400,
           ),
@@ -135,7 +145,7 @@ class _InfoPageState extends State<InfoPage> {
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: value,
-          hint: Text(hint, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          hint: Text(hint, style: const TextStyle(color: Colors.grey, fontSize: 13)),
           isExpanded: true,
           decoration: InputDecoration(
             fillColor: const Color(0xFFFDF6FA),
@@ -144,8 +154,10 @@ class _InfoPageState extends State<InfoPage> {
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
             ),
-            contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
           ),
           icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
           items: items.map((String item) {
@@ -164,14 +176,11 @@ class _InfoPageState extends State<InfoPage> {
   Widget _buildNextButton(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 50,
+      height: 48,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFFD6A4E0),
-            Color(0xFFC0A0E0),
-          ],
+          colors: [Color(0xFFD6A4E0), Color(0xFFC0A0E0)],
         ),
       ),
       child: ElevatedButton(
@@ -193,7 +202,7 @@ class _InfoPageState extends State<InfoPage> {
           'Next',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 20,
+            fontSize: 18,
             fontFamily: 'Bagel Fat One',
           ),
         ),
