@@ -3,7 +3,9 @@ import 'info_page.dart'; // 1. 새로 만든 페이지 import
 import 'services/auth_service.dart';
 
 class ResponsiveLoginPage extends StatefulWidget {
-  const ResponsiveLoginPage({super.key});
+  final bool firebaseInitialized;
+  
+  const ResponsiveLoginPage({super.key, this.firebaseInitialized = false});
 
   @override
   State<ResponsiveLoginPage> createState() => _ResponsiveLoginPageState();
@@ -15,6 +17,30 @@ class _ResponsiveLoginPageState extends State<ResponsiveLoginPage> {
 
   // 구글 로그인 처리
   Future<void> _handleGoogleSignIn() async {
+    // Firebase 초기화 상태 다시 확인
+    final isInitialized = _authService.isFirebaseInitialized;
+    
+    if (!widget.firebaseInitialized || !isInitialized) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Firebase가 초기화되지 않았습니다.\n'
+              'widget.firebaseInitialized: ${widget.firebaseInitialized}\n'
+              'authService.isInitialized: $isInitialized\n'
+              'Xcode 콘솔에서 Firebase 초기화 메시지를 확인하세요.'
+            ),
+            duration: const Duration(seconds: 5),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      print('❌ Firebase 초기화 상태 확인:');
+      print('   - widget.firebaseInitialized: ${widget.firebaseInitialized}');
+      print('   - authService.isFirebaseInitialized: $isInitialized');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
