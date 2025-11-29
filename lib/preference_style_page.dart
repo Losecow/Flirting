@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'services/firestore_service.dart';
+import 'main_navigation.dart';
 
 class PreferenceStylePage extends StatefulWidget {
   const PreferenceStylePage({super.key});
@@ -341,13 +342,11 @@ class _PreferenceStylePageState extends State<PreferenceStylePage> {
 
                   if (!mounted) return;
 
-                  // TODO: 다음 페이지로 이동 (예: 메인 화면 또는 매칭 화면)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('선호 스타일 설정이 완료되었습니다!'),
-                      duration: Duration(seconds: 2),
-                      backgroundColor: Colors.green,
-                    ),
+                  // 메인 네비게이션으로 이동 (모든 설정 완료)
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MainNavigation()),
+                    (route) => false, // 이전 페이지들 모두 제거
                   );
                 } catch (e, stackTrace) {
                   print('❌ 선호 스타일 저장 실패: $e');

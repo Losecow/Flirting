@@ -23,6 +23,30 @@ class FirestoreService {
     return _db.collection('users').doc(uid);
   }
 
+  /// 현재 사용자 정보 가져오기
+  Future<Map<String, dynamic>?> getCurrentUser() async {
+    final uid = _userId;
+    if (uid == null) return null;
+
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        data['id'] = doc.id;
+        return data;
+      }
+      return null;
+    } catch (e) {
+      print('❌ 현재 사용자 정보 가져오기 실패: $e');
+      return null;
+    }
+  }
+
+  /// 특정 사용자 문서 가져오기
+  Future<DocumentSnapshot<Map<String, dynamic>>> getUserDocument(String userId) async {
+    return await _db.collection('users').doc(userId).get();
+  }
+
   /// 학교 / 전공 정보 저장 (업서트)
   Future<void> upsertSchoolInfo({
     required String school,
@@ -150,6 +174,119 @@ class FirestoreService {
       print('❌ 선호 스타일 저장 실패: $e');
       print('❌ Stack trace: $stackTrace');
       rethrow;
+    }
+  }
+
+  /// 다른 사용자 목록 가져오기 (현재 사용자 제외)
+  Future<List<Map<String, dynamic>>> getOtherUsers({
+    int limit = 20,
+    String? searchQuery,
+    Map<String, dynamic>? filters,
+  }) async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      Query<Map<String, dynamic>> query = _db.collection('users');
+
+      // 현재 사용자 제외
+      query = query.where(FieldPath.documentId, isNotEqualTo: uid);
+
+      // 검색어가 있으면 이름, 학교, 전공에서 검색
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        // Firestore는 복잡한 텍스트 검색을 직접 지원하지 않으므로
+        // 클라이언트 측에서 필터링하거나, 별도 검색 인덱스 사용 필요
+        // 여기서는 기본적으로 모든 사용자를 가져온 후 클라이언트에서 필터링
+      }
+
+      // 필터 적용
+      if (filters != null) {
+        if (filters['school'] != null) {
+          query = query.where('school', isEqualTo: filters['school']);
+        }
+        if (filters['major'] != null) {
+          query = query.where('major', isEqualTo: filters['major']);
+        }
+        if (filters['minAge'] != null) {
+          query = query.where('age', isGreaterThanOrEqualTo: filters['minAge']);
+        }
+        if (filters['maxAge'] != null) {
+          query = query.where('age', isLessThanOrEqualTo: filters['maxAge']);
+        }
+      }
+
+      query = query.limit(limit);
+
+      final querySnapshot = await query.get();
+      final users = <Map<String, dynamic>>[];
+
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        data['id'] = doc.id; // 문서 ID 추가
+        users.add(data);
+      }
+
+      // 검색어가 있으면 클라이언트 측에서 필터링
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        final lowerQuery = searchQuery.toLowerCase();
+        return users.where((user) {
+          final name = (user['name'] as String? ?? '').toLowerCase();
+          final school = (user['school'] as String? ?? '').toLowerCase();
+          final major = (user['major'] as String? ?? '').toLowerCase();
+          final bio = (user['bio'] as String? ?? '').toLowerCase();
+
+          return name.contains(lowerQuery) ||
+              school.contains(lowerQuery) ||
+              major.contains(lowerQuery) ||
+              bio.contains(lowerQuery);
+        }).toList();
+      }
+
+      return users;
+    } catch (e) {
+      print('❌ 사용자 목록 가져오기 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 좋아요 추가
+  Future<void> addLike(String targetUserId) async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      await _db.collection('users').doc(uid).collection('likes').doc(targetUserId).set({
+        'targetUserId': targetUserId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('❌ 좋아요 추가 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 좋아요한 사용자 목록 가져오기
+  Future<List<String>> getLikedUserIds() async {
+    final uid = _userId;
+    if (uid == null) {
+      return [];
+    }
+
+    try {
+      final snapshot = await _db
+          .collection('users')
+          .doc(uid)
+          .collection('likes')
+          .get();
+
+      return snapshot.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      print('❌ 좋아요 목록 가져오기 실패: $e');
+      return [];
     }
   }
 }
