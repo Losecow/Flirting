@@ -1,5 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'services/firestore_service.dart';
+import 'services/auth_service.dart';
+import 'services/storage_service.dart';
+import 'login_page.dart';
+import 'profile_edit_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -10,8 +16,13 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final FirestoreService _firestoreService = FirestoreService();
+  final AuthService _authService = AuthService();
+  final StorageService _storageService = StorageService();
+  final ImagePicker _imagePicker = ImagePicker();
   Map<String, dynamic>? _userData;
   bool _isLoading = true;
+  bool _isLoggingOut = false;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -38,6 +49,149 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _handleImagePicker() async {
+    try {
+      // 이미지 선택 옵션 다이얼로그
+      final ImageSource? source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Color(0xFFE94B9A)),
+                title: const Text('갤러리에서 선택'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Color(0xFFE94B9A)),
+                title: const Text('카메라로 촬영'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      );
+
+      if (source == null) return;
+
+      // 이미지 선택
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) return;
+
+      setState(() {
+        _isUploadingImage = true;
+      });
+
+      // 이미지 업로드
+      final imageFile = File(pickedFile.path);
+      final imageUrl = await _storageService.uploadProfileImage(imageFile);
+
+      // Firestore에 이미지 URL 저장
+      await _firestoreService.upsertProfileImageUrl(imageUrl);
+
+      // 프로필 다시 로드
+      await _loadProfile();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('프로필 이미지가 업로드되었습니다.'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ 이미지 업로드 실패: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('이미지 업로드 실패: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    // 확인 다이얼로그 표시
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('정말 로그아웃 하시겠습니까?'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('로그아웃'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true) return;
+
+    setState(() {
+      _isLoggingOut = true;
+    });
+
+    try {
+      await _authService.signOut();
+      
+      if (!mounted) return;
+
+      // 로그인 페이지로 이동 (모든 이전 페이지 제거)
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) => const ResponsiveLoginPage(firebaseInitialized: true),
+        ),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoggingOut = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('로그아웃 중 오류가 발생했습니다: $e'),
+          duration: const Duration(seconds: 3),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -132,15 +286,7 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               // 프로필 이미지
               GestureDetector(
-                onTap: () {
-                  // TODO: 프로필 이미지 업로드 기능
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('프로필 이미지 업로드 기능은 준비 중입니다.'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
+                onTap: _isUploadingImage ? null : _handleImagePicker,
                 child: Stack(
                   children: [
                     Container(
@@ -162,30 +308,36 @@ class _ProfilePageState extends State<ProfilePage> {
                               )
                             : null,
                       ),
-                      child: hasProfileImage
-                          ? null
-                          : Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.camera_alt,
-                                  size: 30,
-                                  color: Color(0xFFC48EC4),
+                      child: _isUploadingImage
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE94B9A)),
+                              ),
+                            )
+                          : hasProfileImage
+                              ? null
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.camera_alt,
+                                      size: 30,
+                                      color: Color(0xFFC48EC4),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '이미지\n등록',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: const Color(0xFFC48EC4),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '이미지\n등록',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: const Color(0xFFC48EC4),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
                     ),
-                    if (!hasProfileImage)
+                    if (!_isUploadingImage)
                       Positioned(
                         bottom: 0,
                         right: 0,
@@ -193,12 +345,12 @@ class _ProfilePageState extends State<ProfilePage> {
                           width: 28,
                           height: 28,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE94B9A),
+                            color: hasProfileImage ? Colors.red : const Color(0xFFE94B9A),
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
-                          child: const Icon(
-                            Icons.add,
+                          child: Icon(
+                            hasProfileImage ? Icons.edit : Icons.add,
                             color: Colors.white,
                             size: 18,
                           ),
@@ -272,6 +424,14 @@ class _ProfilePageState extends State<ProfilePage> {
           if (hobbyOptions.isNotEmpty) ...[
             _buildTagSection('취미/관심사', hobbyOptions),
           ],
+          const SizedBox(height: 24),
+          
+          // 프로필 수정 버튼
+          _buildEditButton(),
+          const SizedBox(height: 12),
+          
+          // 로그아웃 버튼
+          _buildLogoutButton(),
         ],
       ),
     );
@@ -317,5 +477,117 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  // 프로필 수정 버튼
+  Widget _buildEditButton() {
+    return Container(
+      width: double.infinity,
+      height: 48,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: const Color(0xFFE94B9A).withOpacity(0.4),
+          width: 1.5,
+        ),
+        color: const Color(0xFFE94B9A).withOpacity(0.05),
+      ),
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProfileEditPage(userData: _userData!),
+            ),
+          ).then((_) {
+            // 수정 후 프로필 다시 로드
+            _loadProfile();
+          });
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.edit,
+              color: Color(0xFFE94B9A),
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '프로필 수정',
+              style: TextStyle(
+                color: const Color(0xFFE94B9A),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 로그아웃 버튼
+  Widget _buildLogoutButton() {
+    return Container(
+      width: double.infinity,
+      height: 48,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: Colors.red.withOpacity(0.4),
+          width: 1.5,
+        ),
+        color: Colors.red.withOpacity(0.05),
+      ),
+      child: ElevatedButton(
+        onPressed: _isLoggingOut ? null : _handleLogout,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          elevation: 0,
+        ),
+        child: _isLoggingOut
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE94B9A)),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.logout,
+                    color: Colors.red[600],
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '로그아웃',
+                    style: TextStyle(
+                      color: Colors.red[600],
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
 }
 

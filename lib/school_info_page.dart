@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'profile_setting_page.dart';
 import 'services/firestore_service.dart';
+import 'main_navigation.dart';
 
 class SchoolInfoPage extends StatefulWidget {
   const SchoolInfoPage({super.key});
@@ -14,12 +15,58 @@ class _SchoolInfoPageState extends State<SchoolInfoPage> {
   String? _selectedSchool;
   String? _selectedMajor;
   bool _isSaving = false;
+  bool _isCheckingUser = true;
 
   final FirestoreService _firestoreService = FirestoreService();
 
   @override
+  void initState() {
+    super.initState();
+    _checkExistingUser();
+  }
+
+  /// 기존 사용자 정보 확인
+  Future<void> _checkExistingUser() async {
+    try {
+      final user = await _firestoreService.getCurrentUser();
+      
+      if (user != null && mounted) {
+        // 사용자 정보가 있으면 MainNavigation으로 바로 이동
+        final hasName = user['name'] != null && (user['name'] as String).isNotEmpty;
+        final hasSchool = user['school'] != null && (user['school'] as String).isNotEmpty;
+        
+        if (hasName && hasSchool) {
+          // 프로필이 완성된 사용자
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainNavigation()),
+          );
+          return;
+        }
+      }
+    } catch (e) {
+      print('❌ 사용자 정보 확인 실패: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingUser = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
+    
+    if (_isCheckingUser) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF3EFF8),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     
     return Scaffold(
       backgroundColor: const Color(0xFFF3EFF8),

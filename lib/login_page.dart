@@ -4,7 +4,7 @@ import 'services/auth_service.dart';
 
 class ResponsiveLoginPage extends StatefulWidget {
   final bool firebaseInitialized;
-  
+
   const ResponsiveLoginPage({super.key, this.firebaseInitialized = false});
 
   @override
@@ -19,7 +19,7 @@ class _ResponsiveLoginPageState extends State<ResponsiveLoginPage> {
   Future<void> _handleGoogleSignIn() async {
     // Firebase 초기화 상태 다시 확인
     final isInitialized = _authService.isFirebaseInitialized;
-    
+
     if (!widget.firebaseInitialized || !isInitialized) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -28,7 +28,7 @@ class _ResponsiveLoginPageState extends State<ResponsiveLoginPage> {
               'Firebase가 초기화되지 않았습니다.\n'
               'widget.firebaseInitialized: ${widget.firebaseInitialized}\n'
               'authService.isInitialized: $isInitialized\n'
-              'Xcode 콘솔에서 Firebase 초기화 메시지를 확인하세요.'
+              'Xcode 콘솔에서 Firebase 초기화 메시지를 확인하세요.',
             ),
             duration: const Duration(seconds: 5),
             backgroundColor: Colors.red,
@@ -47,7 +47,7 @@ class _ResponsiveLoginPageState extends State<ResponsiveLoginPage> {
 
     try {
       final userCredential = await _authService.signInWithGoogle();
-      
+
       if (userCredential != null && mounted) {
         // 로그인 성공 시 SchoolInfoPage로 이동
         Navigator.pushReplacement(
@@ -148,7 +148,6 @@ class _ResponsiveLoginPageState extends State<ResponsiveLoginPage> {
     );
   }
 
-  // 3. context를 매개변수로 받도록 수정
   Widget _buildLoginFormCard(BuildContext context, Size screenSize) {
     return Container(
       width: double.infinity,
@@ -181,109 +180,13 @@ class _ResponsiveLoginPageState extends State<ResponsiveLoginPage> {
               fontWeight: FontWeight.w400,
             ),
           ),
-          SizedBox(height: screenSize.height * 0.01),
-          // Text(
-          //   'login ha sem mosol dlc a.',
-          //   style: TextStyle(
-          //     color: const Color(0xFFE94B9A).withOpacity(0.7),
-          //     fontSize: 13,
-          //   ),
-          // ),
-          SizedBox(height: screenSize.height * 0.025),
-          _buildTextField(label: 'ID', hint: 'ID를 입력하세요'),
-          SizedBox(height: screenSize.height * 0.02),
-          // obscureText: true 추가
-          _buildTextField(label: 'PW', hint: 'PW를 입력하세요', obscureText: true),
-          SizedBox(height: screenSize.height * 0.025),
-          // 4. context를 _buildLoginButton에 전달
-          _buildLoginButton(context),
-          SizedBox(height: screenSize.height * 0.02),
+          SizedBox(height: screenSize.height * 0.04),
           _buildSocialButton(
             text: 'Google 로 시작하기',
             onPressed: _isLoading ? null : _handleGoogleSignIn,
             isLoading: _isLoading,
           ),
-          SizedBox(height: screenSize.height * 0.015),
-          _buildSocialButton(text: '카카오로 시작하기'),
         ],
-      ),
-    );
-  }
-
-  // obscureText 파라미터 추가
-  Widget _buildTextField({
-    required String label,
-    required String hint,
-    bool obscureText = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFFC48EC4),
-            fontSize: 15,
-            fontFamily: 'Bagel Fat One',
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          obscureText: obscureText, // 비밀번호 필드를 위해 추가
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-            filled: true,
-            fillColor: const Color(0xFFFDF6FA),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // 5. context를 매개변수로 받도록 수정
-  Widget _buildLoginButton(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 48,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFD6A4E0), Color(0xFFC0A0E0)],
-        ),
-      ),
-      child: ElevatedButton(
-        // 6. onPressed 이벤트에 페이지 이동 코드 추가
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SchoolInfoPage()),
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-        ),
-        child: const Text(
-          'Login',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontFamily: 'Bagel Fat One',
-          ),
-        ),
       ),
     );
   }
@@ -319,7 +222,10 @@ class _ResponsiveLoginPageState extends State<ResponsiveLoginPage> {
               )
             : Text(
                 text,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
       ),
     );

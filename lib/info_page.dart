@@ -16,7 +16,7 @@ class _SchoolInfoPageState extends State<SchoolInfoPage> {
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF3EFF8),
       appBar: AppBar(
@@ -34,9 +34,7 @@ class _SchoolInfoPageState extends State<SchoolInfoPage> {
             horizontal: screenSize.width * 0.05,
             vertical: screenSize.height * 0.03,
           ),
-          child: Center(
-            child: _buildInfoCard(context),
-          ),
+          child: Center(child: _buildInfoCard(context)),
         ),
       ),
     );
@@ -45,7 +43,7 @@ class _SchoolInfoPageState extends State<SchoolInfoPage> {
   // 정보 입력 카드 위젯
   Widget _buildInfoCard(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
-    
+
     return Container(
       width: double.infinity,
       constraints: BoxConstraints(maxWidth: screenSize.width * 0.9),
@@ -80,10 +78,7 @@ class _SchoolInfoPageState extends State<SchoolInfoPage> {
           SizedBox(height: screenSize.height * 0.015),
           const Text(
             '소속 학교와 전공을 선택해주세요',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: Colors.grey, fontSize: 13),
           ),
           SizedBox(height: screenSize.height * 0.03),
 
@@ -145,7 +140,10 @@ class _SchoolInfoPageState extends State<SchoolInfoPage> {
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: value,
-          hint: Text(hint, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          hint: Text(
+            hint,
+            style: const TextStyle(color: Colors.grey, fontSize: 13),
+          ),
           isExpanded: true,
           decoration: InputDecoration(
             fillColor: const Color(0xFFFDF6FA),
@@ -161,10 +159,7 @@ class _SchoolInfoPageState extends State<SchoolInfoPage> {
           ),
           icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
           items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
+            return DropdownMenuItem<String>(value: item, child: Text(item));
           }).toList(),
           onChanged: onChanged,
         ),

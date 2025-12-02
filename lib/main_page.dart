@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'services/firestore_service.dart';
 
@@ -11,11 +12,12 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _searchController = TextEditingController();
-  
+
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _filteredUsers = [];
   bool _isLoading = true;
   String _currentUserId = '';
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -26,6 +28,7 @@ class _MainPageState extends State<MainPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -36,7 +39,7 @@ class _MainPageState extends State<MainPage> {
 
     try {
       final users = await _firestoreService.getOtherUsers(limit: 50);
-      
+
       // 현재 사용자 ID 가져오기
       final currentUser = await _firestoreService.getCurrentUser();
       if (currentUser == null) {
@@ -47,40 +50,58 @@ class _MainPageState extends State<MainPage> {
       }
 
       _currentUserId = currentUser['id'] as String;
-      
+
       // 현재 사용자의 선호도 정보 가져오기
-      final currentUserDoc = await _firestoreService.getUserDocument(_currentUserId);
-      
+      final currentUserDoc = await _firestoreService.getUserDocument(
+        _currentUserId,
+      );
+
       final currentUserData = currentUserDoc.data();
-      final preferredAppearance = (currentUserData?['preferredAppearanceStyles'] as List<dynamic>?)?.cast<String>() ?? [];
-      final preferredPersonality = (currentUserData?['preferredPersonalities'] as List<dynamic>?)?.cast<String>() ?? [];
+      final preferredAppearance =
+          (currentUserData?['preferredAppearanceStyles'] as List<dynamic>?)
+              ?.cast<String>() ??
+          [];
+      final preferredPersonality =
+          (currentUserData?['preferredPersonalities'] as List<dynamic>?)
+              ?.cast<String>() ??
+          [];
       // final preferredHobbies = (currentUserData?['preferredHobbies'] as List<dynamic>?)?.cast<String>() ?? [];
 
       // 유사도 점수 계산 및 정렬
       final usersWithScore = users.map((user) {
         // 다른 사용자의 프로필 정보
-        final appearanceStyles = (user['appearanceStyles'] as List<dynamic>?)?.cast<String>() ?? [];
-        final styleKeywords = (user['styleKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
-        final personalityKeywords = (user['personalityKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
-        
+        final appearanceStyles =
+            (user['appearanceStyles'] as List<dynamic>?)?.cast<String>() ?? [];
+        final styleKeywords =
+            (user['styleKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
+        final personalityKeywords =
+            (user['personalityKeywords'] as List<dynamic>?)?.cast<String>() ??
+            [];
+
         // appearanceStyles와 styleKeywords를 합쳐서 외모 스타일로 사용
-        final allAppearanceStyles = {...appearanceStyles, ...styleKeywords}.toList();
+        final allAppearanceStyles = {
+          ...appearanceStyles,
+          ...styleKeywords,
+        }.toList();
 
         int score = 0;
         // 선호 외모 스타일과 일치하는 개수
-        score += allAppearanceStyles.where((style) => preferredAppearance.contains(style)).length;
+        score += allAppearanceStyles
+            .where((style) => preferredAppearance.contains(style))
+            .length;
         // 선호 성격과 일치하는 개수
-        score += personalityKeywords.where((personality) => preferredPersonality.contains(personality)).length;
+        score += personalityKeywords
+            .where((personality) => preferredPersonality.contains(personality))
+            .length;
         // 취미는 아직 저장되지 않았으므로 일단 제외
 
-        return {
-          ...user,
-          'matchScore': score,
-        };
+        return {...user, 'matchScore': score};
       }).toList();
 
       // 점수 높은 순으로 정렬
-      usersWithScore.sort((a, b) => (b['matchScore'] as int).compareTo(a['matchScore'] as int));
+      usersWithScore.sort(
+        (a, b) => (b['matchScore'] as int).compareTo(a['matchScore'] as int),
+      );
 
       setState(() {
         _users = usersWithScore;
@@ -96,6 +117,10 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _onSearchChanged(String query) {
+    // 이전 타이머 취소
+    _searchDebounce?.cancel();
+
+    // 검색어가 비어있으면 이미 로드된 전체 사용자 표시
     if (query.isEmpty) {
       setState(() {
         _filteredUsers = _users;
@@ -103,20 +128,89 @@ class _MainPageState extends State<MainPage> {
       return;
     }
 
-    final lowerQuery = query.toLowerCase();
-    setState(() {
-      _filteredUsers = _users.where((user) {
-        final name = (user['name'] as String? ?? '').toLowerCase();
-        final school = (user['school'] as String? ?? '').toLowerCase();
-        final major = (user['major'] as String? ?? '').toLowerCase();
-        final bio = (user['bio'] as String? ?? '').toLowerCase();
-
-        return name.contains(lowerQuery) ||
-            school.contains(lowerQuery) ||
-            major.contains(lowerQuery) ||
-            bio.contains(lowerQuery);
-      }).toList();
+    // 500ms 후에 검색 실행 (debounce)
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+      _performSearch(query);
     });
+  }
+
+  Future<void> _performSearch(String query) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Firestore에서 검색어로 검색
+      final users = await _firestoreService.getOtherUsers(
+        limit: 100,
+        searchQuery: query,
+      );
+
+      // 현재 사용자 ID 가져오기
+      final currentUser = await _firestoreService.getCurrentUser();
+      if (currentUser == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      _currentUserId = currentUser['id'] as String;
+
+      // 현재 사용자의 선호도 정보 가져오기
+      final currentUserDoc = await _firestoreService.getUserDocument(
+        _currentUserId,
+      );
+      final currentUserData = currentUserDoc.data();
+      final preferredAppearance =
+          (currentUserData?['preferredAppearanceStyles'] as List<dynamic>?)
+              ?.cast<String>() ??
+          [];
+      final preferredPersonality =
+          (currentUserData?['preferredPersonalities'] as List<dynamic>?)
+              ?.cast<String>() ??
+          [];
+
+      // 유사도 점수 계산 및 정렬
+      final usersWithScore = users.map((user) {
+        final appearanceStyles =
+            (user['appearanceStyles'] as List<dynamic>?)?.cast<String>() ?? [];
+        final styleKeywords =
+            (user['styleKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
+        final personalityKeywords =
+            (user['personalityKeywords'] as List<dynamic>?)?.cast<String>() ??
+            [];
+        final allAppearanceStyles = {
+          ...appearanceStyles,
+          ...styleKeywords,
+        }.toList();
+
+        int score = 0;
+        score += allAppearanceStyles
+            .where((style) => preferredAppearance.contains(style))
+            .length;
+        score += personalityKeywords
+            .where((personality) => preferredPersonality.contains(personality))
+            .length;
+
+        return {...user, 'matchScore': score};
+      }).toList();
+
+      usersWithScore.sort(
+        (a, b) => (b['matchScore'] as int).compareTo(a['matchScore'] as int),
+      );
+
+      setState(() {
+        _users = usersWithScore;
+        _filteredUsers = usersWithScore;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ 검색 실패: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _handleLike(String userId) async {
@@ -155,40 +249,43 @@ class _MainPageState extends State<MainPage> {
           children: [
             // 상단 검색 영역
             _buildSearchSection(screenSize),
-            
+
             // 중앙 프로필 카드 리스트
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _filteredUsers.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.search_off, size: 64, color: Colors.grey),
-                              const SizedBox(height: 16),
-                              const Text(
-                                '검색 결과가 없습니다',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.search_off,
+                            size: 64,
+                            color: Colors.grey,
                           ),
-                        )
-                      : ListView.builder(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: screenSize.width * 0.05,
-                            vertical: screenSize.height * 0.02,
+                          const SizedBox(height: 16),
+                          const Text(
+                            '검색 결과가 없습니다',
+                            style: TextStyle(color: Colors.grey, fontSize: 16),
                           ),
-                          itemCount: _filteredUsers.length,
-                          itemBuilder: (context, index) {
-                            return _buildProfileCard(_filteredUsers[index], screenSize);
-                          },
-                        ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: screenSize.width * 0.05,
+                        vertical: screenSize.height * 0.02,
+                      ),
+                      itemCount: _filteredUsers.length,
+                      itemBuilder: (context, index) {
+                        return _buildProfileCard(
+                          _filteredUsers[index],
+                          screenSize,
+                        );
+                      },
+                    ),
             ),
-
           ],
         ),
       ),
@@ -233,58 +330,31 @@ class _MainPageState extends State<MainPage> {
           const SizedBox(height: 8),
           const Text(
             '이름, 전공, 학교, 관심사로 검색해보세요',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: Colors.grey, fontSize: 12),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  decoration: InputDecoration(
-                    hintText: '이름, 전공, 학교, 취미 검색',
-                    hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                    filled: true,
-                    fillColor: const Color(0xFFFDF6FA),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                ),
+          TextField(
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+            decoration: InputDecoration(
+              hintText: '이름, 전공, 학교, 취미 검색',
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+              filled: true,
+              fillColor: const Color(0xFFFDF6FA),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.tune, color: Colors.black54, size: 20),
-                    SizedBox(width: 4),
-                    Text(
-                      '필터',
-                      style: TextStyle(
-                        color: Colors.black54,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
               ),
-            ],
+              prefixIcon: const Icon(
+                Icons.search,
+                color: Colors.grey,
+                size: 20,
+              ),
+            ),
           ),
         ],
       ),
@@ -298,12 +368,18 @@ class _MainPageState extends State<MainPage> {
     final school = user['school'] as String? ?? '';
     final major = user['major'] as String? ?? '';
     final bio = user['bio'] as String? ?? '';
-    final appearanceStyles = (user['appearanceStyles'] as List<dynamic>?)?.cast<String>() ?? [];
-    final styleKeywords = (user['styleKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
-    final personalityKeywords = (user['personalityKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
-    
+    final appearanceStyles =
+        (user['appearanceStyles'] as List<dynamic>?)?.cast<String>() ?? [];
+    final styleKeywords =
+        (user['styleKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
+    final personalityKeywords =
+        (user['personalityKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
+
     // appearanceStyles와 styleKeywords를 합쳐서 표시
-    final allAppearanceStyles = {...appearanceStyles, ...styleKeywords}.toList();
+    final allAppearanceStyles = {
+      ...appearanceStyles,
+      ...styleKeywords,
+    }.toList();
 
     return Container(
       margin: EdgeInsets.only(bottom: screenSize.height * 0.02),
@@ -331,10 +407,7 @@ class _MainPageState extends State<MainPage> {
               decoration: BoxDecoration(
                 color: const Color(0xFFFDF6FA),
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFFE0E0E0),
-                  width: 2,
-                ),
+                border: Border.all(color: const Color(0xFFE0E0E0), width: 2),
               ),
               child: const Icon(
                 Icons.person,
@@ -389,17 +462,22 @@ class _MainPageState extends State<MainPage> {
           // 자기소개
           if (bio.isNotEmpty)
             Container(
+              width: double.infinity,
+              height: 80,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: const Color(0xFFFDF6FA),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                bio,
-                style: const TextStyle(
-                  color: Colors.black87,
-                  fontSize: 14,
-                  height: 1.4,
+              child: SingleChildScrollView(
+                child: Text(
+                  bio,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                  maxLines: null,
                 ),
               ),
             ),
@@ -416,71 +494,34 @@ class _MainPageState extends State<MainPage> {
           ],
 
           // 액션 버튼
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: 메시지 기능 구현
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('메시지 기능은 준비 중입니다.'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFFC0A0E0)),
-                  label: const Text(
-                    '메세지',
-                    style: TextStyle(
-                      color: Color(0xFFC0A0E0),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    side: const BorderSide(color: Color(0xFFC0A0E0), width: 2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
+          Container(
+            width: double.infinity,
+            height: 48,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFD6A4E0), Color(0xFFC0A0E0)],
+              ),
+            ),
+            child: ElevatedButton.icon(
+              onPressed: () => _handleLike(user['id'] as String),
+              icon: const Icon(Icons.favorite_border, color: Colors.white),
+              label: const Text(
+                '좋아요',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFD6A4E0), Color(0xFFC0A0E0)],
-                    ),
-                  ),
-                  child: ElevatedButton.icon(
-                    onPressed: () => _handleLike(user['id'] as String),
-                    icon: const Icon(Icons.favorite_border, color: Colors.white),
-                    label: const Text(
-                      '좋아요',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                  ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
                 ),
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -525,6 +566,4 @@ class _MainPageState extends State<MainPage> {
       ],
     );
   }
-
 }
-

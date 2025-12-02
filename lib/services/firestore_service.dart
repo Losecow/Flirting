@@ -43,7 +43,9 @@ class FirestoreService {
   }
 
   /// 특정 사용자 문서 가져오기
-  Future<DocumentSnapshot<Map<String, dynamic>>> getUserDocument(String userId) async {
+  Future<DocumentSnapshot<Map<String, dynamic>>> getUserDocument(
+    String userId,
+  ) async {
     return await _db.collection('users').doc(userId).get();
   }
 
@@ -55,26 +57,23 @@ class FirestoreService {
     print('🔥 FirestoreService.upsertSchoolInfo 호출됨');
     print('   - school: $school');
     print('   - major: $major');
-    
+
     final uid = _userId;
     print('   - currentUser.uid: $uid');
-    
+
     if (uid == null) {
       print('❌ currentUser가 null입니다!');
       throw Exception('로그인한 사용자가 없습니다. FirebaseAuth.currentUser가 null 입니다.');
     }
-    
+
     try {
       print('💾 Firestore에 저장 시도 중...');
-      await _userDoc.set(
-        {
-          'school': school,
-          'major': major,
-          'updatedAt': FieldValue.serverTimestamp(),
-          'createdAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      await _userDoc.set({
+        'school': school,
+        'major': major,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       print('✅ Firestore 저장 완료!');
     } catch (e, stackTrace) {
       print('❌ Firestore 저장 실패: $e');
@@ -88,14 +87,19 @@ class FirestoreService {
     required List<String> styleKeywords,
     required List<String> personalityKeywords,
   }) async {
-    await _userDoc.set(
-      {
-        'styleKeywords': styleKeywords,
-        'personalityKeywords': personalityKeywords,
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
+    await _userDoc.set({
+      'styleKeywords': styleKeywords,
+      'personalityKeywords': personalityKeywords,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// 취미 정보 저장 (업서트)
+  Future<void> upsertHobbyOptions(List<String> hobbyOptions) async {
+    await _userDoc.set({
+      'hobbyOptions': hobbyOptions,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   /// 프로필 정보 저장 (업서트) - 이름, 나이, 자기소개, 외모 스타일
@@ -121,20 +125,60 @@ class FirestoreService {
 
     try {
       print('💾 Firestore에 프로필 정보 저장 시도 중...');
-      await _userDoc.set(
-        {
-          'name': name,
-          'age': age,
-          'bio': bio,
-          'appearanceStyles': appearanceStyles,
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      await _userDoc.set({
+        'name': name,
+        'age': age,
+        'bio': bio,
+        'appearanceStyles': appearanceStyles,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       print('✅ 프로필 정보 저장 완료!');
     } catch (e, stackTrace) {
       print('❌ 프로필 정보 저장 실패: $e');
       print('❌ Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// 프로필 이미지 URL 저장 (업서트)
+  Future<void> upsertProfileImageUrl(String imageUrl) async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      await _userDoc.set({
+        'profileImageUrl': imageUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      print('✅ 프로필 이미지 URL 저장 완료: $imageUrl');
+    } catch (e) {
+      print('❌ 프로필 이미지 URL 저장 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 위치 정보 저장 (업서트)
+  Future<void> upsertLocation({
+    required double latitude,
+    required double longitude,
+  }) async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      await _userDoc.set({
+        'latitude': latitude,
+        'longitude': longitude,
+        'locationUpdatedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      print('✅ 위치 정보 저장 완료: $latitude, $longitude');
+    } catch (e) {
+      print('❌ 위치 정보 저장 실패: $e');
       rethrow;
     }
   }
@@ -160,15 +204,12 @@ class FirestoreService {
 
     try {
       print('💾 Firestore에 선호 스타일 저장 시도 중...');
-      await _userDoc.set(
-        {
-          'preferredAppearanceStyles': preferredAppearanceStyles,
-          'preferredPersonalities': preferredPersonalities,
-          'preferredHobbies': preferredHobbies,
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      await _userDoc.set({
+        'preferredAppearanceStyles': preferredAppearanceStyles,
+        'preferredPersonalities': preferredPersonalities,
+        'preferredHobbies': preferredHobbies,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       print('✅ 선호 스타일 저장 완료!');
     } catch (e, stackTrace) {
       print('❌ 선호 스타일 저장 실패: $e');
@@ -259,10 +300,15 @@ class FirestoreService {
     }
 
     try {
-      await _db.collection('users').doc(uid).collection('likes').doc(targetUserId).set({
-        'targetUserId': targetUserId,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      await _db
+          .collection('users')
+          .doc(uid)
+          .collection('likes')
+          .doc(targetUserId)
+          .set({
+            'targetUserId': targetUserId,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
     } catch (e) {
       print('❌ 좋아요 추가 실패: $e');
       rethrow;
@@ -290,5 +336,3 @@ class FirestoreService {
     }
   }
 }
-
-
