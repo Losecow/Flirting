@@ -16,13 +16,42 @@ class _SchoolInfoPageState extends State<SchoolInfoPage> {
   String? _selectedMajor;
   bool _isSaving = false;
   bool _isCheckingUser = true;
+  bool _isLoadingData = true;
 
   final FirestoreService _firestoreService = FirestoreService();
+  
+  // 학교 및 전공 목록
+  List<String> _schoolOptions = [];
+  List<String> _majorOptions = [];
 
   @override
   void initState() {
     super.initState();
     _checkExistingUser();
+    _loadSchoolAndMajorData();
+  }
+
+  /// Firestore에서 학교 및 전공 목록 가져오기
+  Future<void> _loadSchoolAndMajorData() async {
+    try {
+      final schools = await _firestoreService.getSchools();
+      final majors = await _firestoreService.getMajors();
+      
+      if (mounted) {
+        setState(() {
+          _schoolOptions = schools;
+          _majorOptions = majors;
+          _isLoadingData = false;
+        });
+      }
+    } catch (e) {
+      print('❌ 학교/전공 데이터 로드 실패: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingData = false;
+        });
+      }
+    }
   }
 
   /// 기존 사용자 정보 확인
@@ -59,7 +88,7 @@ class _SchoolInfoPageState extends State<SchoolInfoPage> {
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
     
-    if (_isCheckingUser) {
+    if (_isCheckingUser || _isLoadingData) {
       return Scaffold(
         backgroundColor: const Color(0xFFF3EFF8),
         body: const Center(
@@ -143,7 +172,7 @@ class _SchoolInfoPageState extends State<SchoolInfoPage> {
             label: '학교',
             hint: '학교를 선택하세요',
             value: _selectedSchool,
-            items: ['학교 A', '학교 B', '학교 C'], // 임시 데이터
+            items: _schoolOptions,
             onChanged: (value) {
               setState(() {
                 _selectedSchool = value;
@@ -157,7 +186,7 @@ class _SchoolInfoPageState extends State<SchoolInfoPage> {
             label: '전공',
             hint: '전공을 선택하세요',
             value: _selectedMajor,
-            items: ['전공 A', '전공 B', '전공 C'], // 임시 데이터
+            items: _majorOptions,
             onChanged: (value) {
               setState(() {
                 _selectedMajor = value;

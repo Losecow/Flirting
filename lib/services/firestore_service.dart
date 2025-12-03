@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+import 'package:flutter/services.dart';
 
 /// Firestore에 사용자 정보를 저장하는 서비스
 ///
@@ -333,6 +335,172 @@ class FirestoreService {
     } catch (e) {
       print('❌ 좋아요 목록 가져오기 실패: $e');
       return [];
+    }
+  }
+
+  /// 학교 목록 가져오기
+  Future<List<String>> getSchools() async {
+    try {
+      final snapshot = await _db
+          .collection('schools')
+          .orderBy('name')
+          .get();
+
+      final schools = snapshot.docs
+          .map((doc) => doc.data()['name'] as String)
+          .toList();
+
+      // 데이터가 없으면 자동으로 초기화
+      if (schools.isEmpty) {
+        print('⚠️ 학교 데이터가 없습니다. 자동 초기화를 시작합니다...');
+        await initializeSchoolAndMajorData();
+        // 초기화 후 다시 가져오기
+        final newSnapshot = await _db
+            .collection('schools')
+            .orderBy('name')
+            .get();
+        return newSnapshot.docs
+            .map((doc) => doc.data()['name'] as String)
+            .toList();
+      }
+
+      return schools;
+    } catch (e) {
+      print('❌ 학교 목록 가져오기 실패: $e');
+      return [];
+    }
+  }
+
+  /// 전공 목록 가져오기
+  Future<List<String>> getMajors() async {
+    try {
+      final snapshot = await _db
+          .collection('majors')
+          .orderBy('name')
+          .get();
+
+      final majors = snapshot.docs
+          .map((doc) => doc.data()['name'] as String)
+          .toList();
+
+      // 데이터가 없으면 자동으로 초기화
+      if (majors.isEmpty) {
+        print('⚠️ 전공 데이터가 없습니다. 자동 초기화를 시작합니다...');
+        await initializeSchoolAndMajorData();
+        // 초기화 후 다시 가져오기
+        final newSnapshot = await _db
+            .collection('majors')
+            .orderBy('name')
+            .get();
+        return newSnapshot.docs
+            .map((doc) => doc.data()['name'] as String)
+            .toList();
+      }
+
+      return majors;
+    } catch (e) {
+      print('❌ 전공 목록 가져오기 실패: $e');
+      return [];
+    }
+  }
+
+  /// 학교 및 전공 데이터 초기화 (데이터가 없을 때만 실행)
+  Future<void> initializeSchoolAndMajorData() async {
+    try {
+      // 이미 데이터가 있는지 확인
+      final schoolsSnapshot = await _db.collection('schools').limit(1).get();
+      final majorsSnapshot = await _db.collection('majors').limit(1).get();
+
+      if (schoolsSnapshot.docs.isNotEmpty && majorsSnapshot.docs.isNotEmpty) {
+        print('✅ 학교 및 전공 데이터가 이미 존재합니다.');
+        return;
+      }
+
+      print('🔥 학교 및 전공 데이터 초기화 시작...');
+
+      // JSON 파일에서 데이터 로드
+      List<String> schools;
+      List<String> majors;
+
+      try {
+        final String jsonString = await rootBundle.loadString('assets/data/school_major_data.json');
+        final Map<String, dynamic> jsonData = json.decode(jsonString);
+        schools = List<String>.from(jsonData['schools'] ?? []);
+        majors = List<String>.from(jsonData['majors'] ?? []);
+        print('✅ JSON 파일에서 데이터 로드 성공');
+      } catch (e) {
+        print('⚠️ JSON 파일 로드 실패, 기본 데이터 사용: $e');
+        // JSON 파일을 읽을 수 없으면 기본 데이터 사용
+        schools = [
+          '서울대학교',
+          '연세대학교',
+          '고려대학교',
+          '한국과학기술원(KAIST)',
+          '포스텍(포항공과대학교)',
+          '성균관대학교',
+          '한양대학교',
+          '중앙대학교',
+          '경희대학교',
+          '이화여자대학교',
+        ];
+        majors = [
+          '컴퓨터공학',
+          '경영학',
+          '심리학',
+          '경제학',
+          '영어영문학',
+          '의학',
+          '법학',
+          '건축학',
+          '디자인',
+          '음악',
+        ];
+      }
+
+      // 학교 데이터 저장 (중복 방지)
+      if (schoolsSnapshot.docs.isEmpty) {
+        for (var school in schools) {
+          // 중복 체크
+          final existing = await _db
+              .collection('schools')
+              .where('name', isEqualTo: school)
+              .limit(1)
+              .get();
+
+          if (existing.docs.isEmpty) {
+            await _db.collection('schools').add({
+              'name': school,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+            print('✅ 학교 추가: $school');
+          }
+        }
+      }
+
+      // 전공 데이터 저장 (중복 방지)
+      if (majorsSnapshot.docs.isEmpty) {
+        for (var major in majors) {
+          // 중복 체크
+          final existing = await _db
+              .collection('majors')
+              .where('name', isEqualTo: major)
+              .limit(1)
+              .get();
+
+          if (existing.docs.isEmpty) {
+            await _db.collection('majors').add({
+              'name': major,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+            print('✅ 전공 추가: $major');
+          }
+        }
+      }
+
+      print('✅ 학교 및 전공 데이터 초기화 완료!');
+    } catch (e) {
+      print('❌ 학교 및 전공 데이터 초기화 실패: $e');
+      rethrow;
     }
   }
 }

@@ -249,8 +249,11 @@ class _ProfilePageState extends State<ProfilePage> {
     final personalityKeywords = (_userData!['personalityKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
     final hobbyOptions = (_userData!['hobbyOptions'] as List<dynamic>?)?.cast<String>() ?? [];
 
-    // appearanceStyles와 styleKeywords를 합쳐서 외모 스타일로 사용
-    final allAppearanceStyles = {...appearanceStyles, ...styleKeywords}.toList();
+    // appearanceStyles를 외모 스타일로 사용 (styleKeywords는 별도로 표시하지 않음)
+    // appearanceStyles가 비어있으면 styleKeywords를 사용
+    final displayAppearanceStyles = appearanceStyles.isNotEmpty 
+        ? appearanceStyles 
+        : styleKeywords;
 
     return Container(
       padding: EdgeInsets.all(screenSize.width * 0.05),
@@ -413,8 +416,8 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 24),
 
           // 프로필 상세 정보 (태그들)
-          if (allAppearanceStyles.isNotEmpty) ...[
-            _buildTagSection('외모 스타일', allAppearanceStyles),
+          if (displayAppearanceStyles.isNotEmpty) ...[
+            _buildTagSection('외모 스타일', displayAppearanceStyles),
             const SizedBox(height: 20),
           ],
           if (personalityKeywords.isNotEmpty) ...[

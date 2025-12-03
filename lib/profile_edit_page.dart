@@ -27,8 +27,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   final Set<String> _selectedHobbyOptions = <String>{};
   
   // 옵션 리스트
-  final List<String> _schoolOptions = ['학교 A', '학교 B', '학교 C'];
-  final List<String> _majorOptions = ['전공 A', '전공 B', '전공 C'];
+  List<String> _schoolOptions = [];
+  List<String> _majorOptions = [];
+  bool _isLoadingOptions = true;
   final List<String> _appearanceStyleOptions = [
     '깔끔한',
     '힙한',
@@ -68,6 +69,41 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   void initState() {
     super.initState();
     _initializeFromUserData();
+    _loadSchoolAndMajorData();
+  }
+
+  /// Firestore에서 학교 및 전공 목록 가져오기
+  Future<void> _loadSchoolAndMajorData() async {
+    try {
+      final schools = await _firestoreService.getSchools();
+      final majors = await _firestoreService.getMajors();
+      
+      if (mounted) {
+        setState(() {
+          _schoolOptions = schools;
+          _majorOptions = majors;
+          _isLoadingOptions = false;
+          
+          // 기존 선택된 값이 실제 목록에 있는지 확인
+          // 없으면 null로 설정하여 오류 방지
+          if (_selectedSchool != null && !schools.contains(_selectedSchool)) {
+            print('⚠️ 선택된 학교 "${_selectedSchool}"가 목록에 없습니다. null로 설정합니다.');
+            _selectedSchool = null;
+          }
+          if (_selectedMajor != null && !majors.contains(_selectedMajor)) {
+            print('⚠️ 선택된 전공 "${_selectedMajor}"가 목록에 없습니다. null로 설정합니다.');
+            _selectedMajor = null;
+          }
+        });
+      }
+    } catch (e) {
+      print('❌ 학교/전공 데이터 로드 실패: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingOptions = false;
+        });
+      }
+    }
   }
 
   void _initializeFromUserData() {
@@ -76,6 +112,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     _ageController = TextEditingController(text: widget.userData['age']?.toString() ?? '');
     _bioController = TextEditingController(text: widget.userData['bio'] as String? ?? '');
     
+    // 학교와 전공은 Firestore에서 로드한 후에 검증하므로 여기서는 임시로 설정
     _selectedSchool = widget.userData['school'] as String?;
     _selectedMajor = widget.userData['major'] as String?;
     
@@ -162,10 +199,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 children: [
                   _buildDropdownField(
                     label: '학교',
-                    hint: '학교를 선택하세요',
+                    hint: _isLoadingOptions ? '로딩 중...' : '학교를 선택하세요',
                     value: _selectedSchool,
                     items: _schoolOptions,
-                    onChanged: (value) {
+                    onChanged: _isLoadingOptions ? null : (value) {
                       setState(() {
                         _selectedSchool = value;
                       });
@@ -174,10 +211,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                   SizedBox(height: screenSize.height * 0.02),
                   _buildDropdownField(
                     label: '전공',
-                    hint: '전공을 선택하세요',
+                    hint: _isLoadingOptions ? '로딩 중...' : '전공을 선택하세요',
                     value: _selectedMajor,
                     items: _majorOptions,
-                    onChanged: (value) {
+                    onChanged: _isLoadingOptions ? null : (value) {
                       setState(() {
                         _selectedMajor = value;
                       });
@@ -360,7 +397,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     required String? hint,
     required String? value,
     required List<String> items,
-    required ValueChanged<String?> onChanged,
+    ValueChanged<String?>? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,6 +459,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           child: Opacity(
             opacity: canSelect ? 1.0 : 0.5,
             child: Container(
+              constraints: const BoxConstraints(
+                minHeight: 40,
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: isSelected
@@ -437,6 +477,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     isSelected ? Icons.check : Icons.add,
