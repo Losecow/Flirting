@@ -1204,6 +1204,8 @@ PODS:
   - BoringSSL-GRPC/Implementation (0.0.37):
     - BoringSSL-GRPC/Interface (= 0.0.37)
   - BoringSSL-GRPC/Interface (0.0.37)
+  - camera_avfoundation (0.0.1):
+    - Flutter
   - cloud_firestore (5.6.12):
     - Firebase/Firestore (= 11.15.0)
     - firebase_core
@@ -1281,28 +1283,46 @@ PODS:
   - geolocator_apple (1.2.0):
     - Flutter
     - FlutterMacOS
-  - Google-Maps-iOS-Utils (5.0.0):
-    - GoogleMaps (~> 8.0)
+  - Google-Maps-iOS-Utils (6.1.0):
+    - GoogleMaps (~> 9.0)
   - google_maps_flutter_ios (0.0.1):
     - Flutter
     - Google-Maps-iOS-Utils (< 7.0, >= 5.0)
     - GoogleMaps (< 10.0, >= 8.4)
+  - google_mlkit_commons (0.11.0):
+    - Flutter
+    - MLKitVision
+  - google_mlkit_face_detection (0.13.1):
+    - Flutter
+    - google_mlkit_commons
+    - GoogleMLKit/FaceDetection (~> 7.0.0)
   - google_sign_in_ios (0.0.1):
     - AppAuth (>= 1.7.4)
     - Flutter
     - FlutterMacOS
     - GoogleSignIn (~> 8.0)
     - GTMSessionFetcher (>= 3.4.0)
-  - GoogleMaps (8.4.0):
-    - GoogleMaps/Maps (= 8.4.0)
-  - GoogleMaps/Base (8.4.0)
-  - GoogleMaps/Maps (8.4.0):
-    - GoogleMaps/Base
+  - GoogleDataTransport (10.1.0):
+    - nanopb (~> 3.30910.0)
+    - PromisesObjC (~> 2.4)
+  - GoogleMaps (9.4.0):
+    - GoogleMaps/Maps (= 9.4.0)
+  - GoogleMaps/Maps (9.4.0)
+  - GoogleMLKit/FaceDetection (7.0.0):
+    - GoogleMLKit/MLKitCore
+    - MLKitFaceDetection (~> 6.0.0)
+  - GoogleMLKit/MLKitCore (7.0.0):
+    - MLKitCommon (~> 12.0.0)
   - GoogleSignIn (8.0.0):
     - AppAuth (< 2.0, >= 1.7.3)
     - AppCheckCore (~> 11.0)
     - GTMAppAuth (< 5.0, >= 4.1.1)
     - GTMSessionFetcher/Core (~> 3.3)
+  - GoogleToolboxForMac/Defines (4.2.1)
+  - GoogleToolboxForMac/Logger (4.2.1):
+    - GoogleToolboxForMac/Defines (= 4.2.1)
+  - "GoogleToolboxForMac/NSData+zlib (4.2.1)":
+    - GoogleToolboxForMac/Defines (= 4.2.1)
   - GoogleUtilities/AppDelegateSwizzler (8.1.0):
     - GoogleUtilities/Environment
     - GoogleUtilities/Logger
@@ -1430,6 +1450,23 @@ PODS:
   - image_picker_ios (0.0.1):
     - Flutter
   - leveldb-library (1.22.6)
+  - MLImage (1.0.0-beta6)
+  - MLKitCommon (12.0.0):
+    - GoogleDataTransport (~> 10.0)
+    - GoogleToolboxForMac/Logger (< 5.0, >= 4.2.1)
+    - "GoogleToolboxForMac/NSData+zlib (< 5.0, >= 4.2.1)"
+    - GoogleUtilities/Logger (~> 8.0)
+    - GoogleUtilities/UserDefaults (~> 8.0)
+    - GTMSessionFetcher/Core (< 4.0, >= 3.3.2)
+  - MLKitFaceDetection (6.0.0):
+    - MLKitCommon (~> 12.0)
+    - MLKitVision (~> 8.0)
+  - MLKitVision (8.0.0):
+    - GoogleToolboxForMac/Logger (< 5.0, >= 4.2.1)
+    - "GoogleToolboxForMac/NSData+zlib (< 5.0, >= 4.2.1)"
+    - GTMSessionFetcher/Core (< 4.0, >= 3.3.2)
+    - MLImage (= 1.0.0-beta6)
+    - MLKitCommon (~> 12.0)
   - nanopb (3.30910.0):
     - nanopb/decode (= 3.30910.0)
     - nanopb/encode (= 3.30910.0)
@@ -1441,6 +1478,7 @@ PODS:
   - RecaptchaInterop (101.0.0)
 
 DEPENDENCIES:
+  - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
   - cloud_firestore (from `.symlinks/plugins/cloud_firestore/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
@@ -1448,6 +1486,8 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
   - google_maps_flutter_ios (from `.symlinks/plugins/google_maps_flutter_ios/ios`)
+  - google_mlkit_commons (from `.symlinks/plugins/google_mlkit_commons/ios`)
+  - google_mlkit_face_detection (from `.symlinks/plugins/google_mlkit_face_detection/ios`)
   - google_sign_in_ios (from `.symlinks/plugins/google_sign_in_ios/darwin`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
@@ -1470,19 +1510,28 @@ SPEC REPOS:
     - FirebaseSharedSwift
     - FirebaseStorage
     - Google-Maps-iOS-Utils
+    - GoogleDataTransport
     - GoogleMaps
+    - GoogleMLKit
     - GoogleSignIn
+    - GoogleToolboxForMac
     - GoogleUtilities
     - "gRPC-C++"
     - gRPC-Core
     - GTMAppAuth
     - GTMSessionFetcher
     - leveldb-library
+    - MLImage
+    - MLKitCommon
+    - MLKitFaceDetection
+    - MLKitVision
     - nanopb
     - PromisesObjC
     - RecaptchaInterop
 
 EXTERNAL SOURCES:
+  camera_avfoundation:
+    :path: ".symlinks/plugins/camera_avfoundation/ios"
   cloud_firestore:
     :path: ".symlinks/plugins/cloud_firestore/ios"
   firebase_auth:
@@ -1497,6 +1546,10 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/geolocator_apple/darwin"
   google_maps_flutter_ios:
     :path: ".symlinks/plugins/google_maps_flutter_ios/ios"
+  google_mlkit_commons:
+    :path: ".symlinks/plugins/google_mlkit_commons/ios"
+  google_mlkit_face_detection:
+    :path: ".symlinks/plugins/google_mlkit_face_detection/ios"
   google_sign_in_ios:
     :path: ".symlinks/plugins/google_sign_in_ios/darwin"
   image_picker_ios:
@@ -1509,6 +1562,7 @@ SPEC CHECKSUMS:
   AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
   AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
   BoringSSL-GRPC: dded2a44897e45f28f08ae87a55ee4bcd19bc508
+  camera_avfoundation: 5675ca25298b6f81fa0a325188e7df62cc217741
   cloud_firestore: fdcc87898326e396d6ef6df543acf9b5c2034b95
   Firebase: d99ac19b909cd2c548339c2241ecd0d1599ab02e
   firebase_auth: 50af8366c87bb88c80ebeae62eb60189c7246b9b
@@ -1526,11 +1580,16 @@ SPEC CHECKSUMS:
   FirebaseStorage: 50fc9ee147392943e492467db6b52759b0447037
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e
-  Google-Maps-iOS-Utils: 66d6de12be1ce6d3742a54661e7a79cb317a9321
+  Google-Maps-iOS-Utils: 0a484b05ed21d88c9f9ebbacb007956edd508a96
   google_maps_flutter_ios: 0291eb2aa252298a769b04d075e4a9d747ff7264
+  google_mlkit_commons: 2abe6a70e1824e431d16a51085cb475b672c8aab
+  google_mlkit_face_detection: 754da2113a1952f063c7c5dc347ac6ae8934fb77
   google_sign_in_ios: b48bb9af78576358a168361173155596c845f0b9
-  GoogleMaps: 8939898920281c649150e0af74aa291c60f2e77d
+  GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
+  GoogleMaps: 0608099d4870cac8754bdba9b6953db543432438
+  GoogleMLKit: eff9e23ec1d90ea4157a1ee2e32a4f610c5b3318
   GoogleSignIn: ce8c89bb9b37fb624b92e7514cc67335d1e277e4
+  GoogleToolboxForMac: d1a2cbf009c453f4d6ded37c105e2f67a32206d8
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   "gRPC-C++": cc207623316fb041a7a3e774c252cf68a058b9e8
   gRPC-Core: 860978b7db482de8b4f5e10677216309b5ff6330
@@ -1538,11 +1597,15 @@ SPEC CHECKSUMS:
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   image_picker_ios: e0ece4aa2a75771a7de3fa735d26d90817041326
   leveldb-library: cc8b8f8e013647a295ad3f8cd2ddf49a6f19be19
+  MLImage: 0ad1c5f50edd027672d8b26b0fee78a8b4a0fc56
+  MLKitCommon: 07c2c33ae5640e5380beaaa6e4b9c249a205542d
+  MLKitFaceDetection: 2a593db4837db503ad3426b565e7aab045cefea5
+  MLKitVision: 45e79d68845a2de77e2dd4d7f07947f0ed157b0e
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
 
-PODFILE CHECKSUM: e30f02f9d1c72c47bb6344a0a748c9d268180865
+PODFILE CHECKSUM: 925325d20e05a8bbfce919e0da669633c652835f
 
 COCOAPODS: 1.16.2
