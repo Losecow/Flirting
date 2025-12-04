@@ -6,6 +6,7 @@ import 'services/auth_service.dart';
 import 'services/storage_service.dart';
 import 'login_page.dart';
 import 'profile_edit_page.dart';
+import 'received_likes_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -429,6 +430,10 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
           const SizedBox(height: 24),
           
+          // 받은 좋아요 버튼
+          _buildReceivedLikesButton(),
+          const SizedBox(height: 12),
+          
           // 프로필 수정 버튼
           _buildEditButton(),
           const SizedBox(height: 12),
@@ -477,6 +482,60 @@ class _ProfilePageState extends State<ProfilePage> {
           }).toList(),
         ),
       ],
+    );
+  }
+
+  // 받은 좋아요 버튼
+  Widget _buildReceivedLikesButton() {
+    return Container(
+      width: double.infinity,
+      height: 48,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: const Color(0xFFE94B9A).withOpacity(0.4),
+          width: 1.5,
+        ),
+        color: const Color(0xFFE94B9A).withOpacity(0.05),
+      ),
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ReceivedLikesPage(),
+            ),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.favorite,
+              color: Color(0xFFE94B9A),
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              '받은 좋아요',
+              style: TextStyle(
+                color: Color(0xFFE94B9A),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

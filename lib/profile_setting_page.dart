@@ -14,6 +14,8 @@ class _ProfileSettingPageState extends State<ProfileSettingPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
+  final TextEditingController _instagramController = TextEditingController();
+  final TextEditingController _kakaoController = TextEditingController();
 
   // 외모 스타일 선택 (최대 3개)
   final Set<String> _selectedAppearanceStyles = <String>{};
@@ -34,6 +36,8 @@ class _ProfileSettingPageState extends State<ProfileSettingPage> {
     _nameController.dispose();
     _ageController.dispose();
     _bioController.dispose();
+    _instagramController.dispose();
+    _kakaoController.dispose();
     super.dispose();
   }
 
@@ -150,6 +154,20 @@ class _ProfileSettingPageState extends State<ProfileSettingPage> {
             controller: _bioController,
             hint: '간단한 자기소개를 써주세요',
             maxLines: 4,
+          ),
+          SizedBox(height: screenSize.height * 0.02),
+
+          // 연락처 정보
+          _buildTextField(
+            label: '인스타그램 아이디',
+            controller: _instagramController,
+            hint: '@ 없이 입력하세요 (선택사항)',
+          ),
+          SizedBox(height: screenSize.height * 0.02),
+          _buildTextField(
+            label: '카카오톡 아이디',
+            controller: _kakaoController,
+            hint: '카카오톡 아이디를 입력하세요 (선택사항)',
           ),
           SizedBox(height: screenSize.height * 0.025),
 
@@ -357,6 +375,15 @@ class _ProfileSettingPageState extends State<ProfileSettingPage> {
                     bio: _bioController.text.trim(),
                     appearanceStyles: _selectedAppearanceStyles.toList(),
                   );
+
+                  // 연락처 정보 저장
+                  if (_instagramController.text.trim().isNotEmpty || 
+                      _kakaoController.text.trim().isNotEmpty) {
+                    await _firestoreService.upsertContactInfo(
+                      instagramId: _instagramController.text.trim(),
+                      kakaoId: _kakaoController.text.trim(),
+                    );
+                  }
 
                   print('✅ 프로필 정보 저장 성공!');
 

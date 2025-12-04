@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:rive/rive.dart' hide LinearGradient;
 import 'services/firestore_service.dart';
 
 class MainPage extends StatefulWidget {
@@ -18,6 +19,10 @@ class _MainPageState extends State<MainPage> {
   bool _isLoading = true;
   String _currentUserId = '';
   Timer? _searchDebounce;
+  
+  // 각 사용자별 Rive 애니메이션 컨트롤러 관리
+  final Map<String, StateMachineController> _riveControllers = {};
+  final Map<String, SMIInput<bool>?> _isLikedInputs = {};
 
   @override
   void initState() {
@@ -28,6 +33,12 @@ class _MainPageState extends State<MainPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    // 모든 Rive 컨트롤러 정리
+    for (var controller in _riveControllers.values) {
+      controller.dispose();
+    }
+    _riveControllers.clear();
+    _isLikedInputs.clear();
     _searchDebounce?.cancel();
     super.dispose();
   }
@@ -215,6 +226,9 @@ class _MainPageState extends State<MainPage> {
 
   Future<void> _handleLike(String userId) async {
     try {
+      // 해당 사용자의 Rive 애니메이션 트리거
+      _isLikedInputs[userId]?.value = true;
+      
       await _firestoreService.addLike(userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -226,6 +240,9 @@ class _MainPageState extends State<MainPage> {
         );
       }
     } catch (e) {
+      // 실패 시 애니메이션 되돌리기
+      _isLikedInputs[userId]?.value = false;
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -503,23 +520,50 @@ class _MainPageState extends State<MainPage> {
                 colors: [Color(0xFFD6A4E0), Color(0xFFC0A0E0)],
               ),
             ),
-            child: ElevatedButton.icon(
+            child: ElevatedButton(
               onPressed: () => _handleLike(user['id'] as String),
-              icon: const Icon(Icons.favorite_border, color: Colors.white),
-              label: const Text(
-                '좋아요',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: ClipRect(
+                      child: RiveAnimation.asset(
+                        'assets/rive/8119-22337-twitter-like-now-with-audio.riv',
+                        fit: BoxFit.contain,
+                        onInit: (artboard) {
+                          final userId = user['id'] as String;
+                          final controller = StateMachineController.fromArtboard(
+                            artboard,
+                            'State Machine 1', // Rive 파일의 State Machine 이름으로 변경 필요
+                          );
+                          if (controller != null) {
+                            artboard.addController(controller);
+                            _riveControllers[userId] = controller;
+                            _isLikedInputs[userId] = controller.findInput<bool>('isLiked');
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '좋아요',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

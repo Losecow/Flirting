@@ -17,6 +17,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   late TextEditingController _nameController;
   late TextEditingController _ageController;
   late TextEditingController _bioController;
+  late TextEditingController _instagramController;
+  late TextEditingController _kakaoController;
   
   // 선택된 값들
   String? _selectedSchool;
@@ -111,6 +113,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     _nameController = TextEditingController(text: widget.userData['name'] as String? ?? '');
     _ageController = TextEditingController(text: widget.userData['age']?.toString() ?? '');
     _bioController = TextEditingController(text: widget.userData['bio'] as String? ?? '');
+    _instagramController = TextEditingController(text: widget.userData['instagramId'] as String? ?? '');
+    _kakaoController = TextEditingController(text: widget.userData['kakaoId'] as String? ?? '');
     
     // 학교와 전공은 Firestore에서 로드한 후에 검증하므로 여기서는 임시로 설정
     _selectedSchool = widget.userData['school'] as String?;
@@ -132,6 +136,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     _nameController.dispose();
     _ageController.dispose();
     _bioController.dispose();
+    _instagramController.dispose();
+    _kakaoController.dispose();
     super.dispose();
   }
 
@@ -190,6 +196,18 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                     controller: _bioController,
                     hint: '간단한 자기소개를 써주세요',
                     maxLines: 4,
+                  ),
+                  SizedBox(height: screenSize.height * 0.02),
+                  _buildTextField(
+                    label: '인스타그램 아이디',
+                    controller: _instagramController,
+                    hint: '@ 없이 입력하세요 (선택사항)',
+                  ),
+                  SizedBox(height: screenSize.height * 0.02),
+                  _buildTextField(
+                    label: '카카오톡 아이디',
+                    controller: _kakaoController,
+                    hint: '카카오톡 아이디를 입력하세요 (선택사항)',
                   ),
                 ],
               ),
@@ -608,6 +626,12 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         age: int.tryParse(_ageController.text.trim()) ?? 0,
         bio: _bioController.text.trim(),
         appearanceStyles: _selectedAppearanceStyles.toList(),
+      );
+
+      // 연락처 정보 저장
+      await _firestoreService.upsertContactInfo(
+        instagramId: _instagramController.text.trim(),
+        kakaoId: _kakaoController.text.trim(),
       );
 
       // 키워드 정보 저장

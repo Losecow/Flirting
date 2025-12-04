@@ -104,6 +104,29 @@ class FirestoreService {
     }, SetOptions(merge: true));
   }
 
+  /// 연락처 정보 저장 (업서트) - 인스타그램, 카카오톡 아이디
+  Future<void> upsertContactInfo({
+    required String instagramId,
+    required String kakaoId,
+  }) async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      await _userDoc.set({
+        'instagramId': instagramId.isEmpty ? null : instagramId,
+        'kakaoId': kakaoId.isEmpty ? null : kakaoId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      print('✅ 연락처 정보 저장 완료!');
+    } catch (e) {
+      print('❌ 연락처 정보 저장 실패: $e');
+      rethrow;
+    }
+  }
+
   /// 프로필 정보 저장 (업서트) - 이름, 나이, 자기소개, 외모 스타일
   Future<void> upsertProfileInfo({
     required String name,
@@ -338,13 +361,105 @@ class FirestoreService {
     }
   }
 
+  /// 나를 좋아요한 사용자 목록 가져오기
+  Future<List<Map<String, dynamic>>> getReceivedLikes() async {
+    final uid = _userId;
+    if (uid == null) {
+      return [];
+    }
+
+    try {
+      // 모든 사용자의 likes 서브컬렉션에서 현재 사용자 ID를 찾기
+      final allUsersSnapshot = await _db.collection('users').get();
+      final receivedLikes = <Map<String, dynamic>>[];
+
+      for (final userDoc in allUsersSnapshot.docs) {
+        final userId = userDoc.id;
+        if (userId == uid) continue; // 자기 자신은 제외
+
+        // 해당 사용자의 likes 서브컬렉션에서 현재 사용자 확인
+        final likeDoc = await _db
+            .collection('users')
+            .doc(userId)
+            .collection('likes')
+            .doc(uid)
+            .get();
+
+        if (likeDoc.exists) {
+          // 사용자 정보 가져오기
+          final userData = userDoc.data();
+          userData['id'] = userId;
+
+          // 정보 공개 여부 확인 (sharedInfo 컬렉션에서 확인)
+          // userId가 나에게 정보를 공개했는지 확인
+          final sharedInfoDoc = await _db
+              .collection('users')
+              .doc(uid) // 현재 사용자(받은 좋아요를 본 사람)
+              .collection('sharedInfo')
+              .doc(userId) // 좋아요를 보낸 사용자가 공개한 정보
+              .get();
+
+          if (sharedInfoDoc.exists) {
+            userData['hasSharedInfo'] = true;
+            userData['sharedAt'] = sharedInfoDoc.data()?['sharedAt'];
+
+            // 정보를 공개한 사용자(userId)의 실제 연락처 정보 가져오기
+            final sharedUserDoc = await _db
+                .collection('users')
+                .doc(userId)
+                .get();
+
+            if (sharedUserDoc.exists) {
+              final sharedUserData = sharedUserDoc.data()!;
+              userData['sharedInstagramId'] =
+                  sharedUserData['instagramId'] as String? ?? '';
+              userData['sharedKakaoId'] =
+                  sharedUserData['kakaoId'] as String? ?? '';
+            }
+          } else {
+            userData['hasSharedInfo'] = false;
+            userData['sharedInstagramId'] = '';
+            userData['sharedKakaoId'] = '';
+          }
+
+          receivedLikes.add(userData);
+        }
+      }
+
+      return receivedLikes;
+    } catch (e) {
+      print('❌ 받은 좋아요 목록 가져오기 실패: $e');
+      return [];
+    }
+  }
+
+  /// 특정 사용자에게 내 정보 공개 (웃음 인증 후)
+  Future<void> shareInfoToUser(String targetUserId) async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      // 상대방의 sharedInfo 컬렉션에 내 정보 추가
+      await _db
+          .collection('users')
+          .doc(targetUserId)
+          .collection('sharedInfo')
+          .doc(uid)
+          .set({'sharedUserId': uid, 'sharedAt': FieldValue.serverTimestamp()});
+
+      print('✅ 정보 공개 완료: $targetUserId에게 내 정보 공개');
+    } catch (e) {
+      print('❌ 정보 공개 실패: $e');
+      rethrow;
+    }
+  }
+
   /// 학교 목록 가져오기
   Future<List<String>> getSchools() async {
     try {
-      final snapshot = await _db
-          .collection('schools')
-          .orderBy('name')
-          .get();
+      final snapshot = await _db.collection('schools').orderBy('name').get();
 
       final schools = snapshot.docs
           .map((doc) => doc.data()['name'] as String)
@@ -374,10 +489,7 @@ class FirestoreService {
   /// 전공 목록 가져오기
   Future<List<String>> getMajors() async {
     try {
-      final snapshot = await _db
-          .collection('majors')
-          .orderBy('name')
-          .get();
+      final snapshot = await _db.collection('majors').orderBy('name').get();
 
       final majors = snapshot.docs
           .map((doc) => doc.data()['name'] as String)
@@ -423,7 +535,9 @@ class FirestoreService {
       List<String> majors;
 
       try {
-        final String jsonString = await rootBundle.loadString('assets/data/school_major_data.json');
+        final String jsonString = await rootBundle.loadString(
+          'assets/data/school_major_data.json',
+        );
         final Map<String, dynamic> jsonData = json.decode(jsonString);
         schools = List<String>.from(jsonData['schools'] ?? []);
         majors = List<String>.from(jsonData['majors'] ?? []);
