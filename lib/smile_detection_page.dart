@@ -211,94 +211,32 @@ class _SmileDetectionPageState extends State<SmileDetectionPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           '나가기',
-          style: TextStyle(
-            fontSize: 24,
-            fontFamily: 'Bagel Fat One',
-            fontWeight: FontWeight.w400,
-            color: Color(0xFFE94B9A),
-          ),
-          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         content: const Text(
           '웃음 감지를 중단하고 나가시겠습니까?',
-          style: TextStyle(fontSize: 14, color: Colors.black87),
-          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14),
         ),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(
-                      color: const Color(0xFFE0E0E0),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.grey[700],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: const Text(
-                      '취소',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFD6A4E0), Color(0xFFC0A0E0)],
-                    ),
-                  ),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
-                      // 다이얼로그가 완전히 닫힌 후 페이지 닫기
-                      Future.microtask(() {
-                        if (mounted) {
-                          Navigator.of(context).pop(false); // 카메라 페이지 닫기
-                        }
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: const Text(
-                      '나가기',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(); // 다이얼로그 닫기
+              // 다이얼로그가 완전히 닫힌 후 페이지 닫기
+              Future.microtask(() {
+                if (mounted) {
+                  Navigator.of(context).pop(false); // 카메라 페이지 닫기
+                }
+              });
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('나가기'),
           ),
         ],
       ),
@@ -311,9 +249,7 @@ class _SmileDetectionPageState extends State<SmileDetectionPage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        elevation: 8,
         title: const Text(
           '연락처 정보',
           style: TextStyle(
@@ -330,11 +266,7 @@ class _SmileDetectionPageState extends State<SmileDetectionPage> {
           children: [
             const Text(
               '내 정보가 공개되었습니다!',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -358,34 +290,17 @@ class _SmileDetectionPageState extends State<SmileDetectionPage> {
           ],
         ),
         actions: [
-          Container(
-            width: double.infinity,
-            height: 44,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFD6A4E0), Color(0xFFC0A0E0)],
-              ),
-            ),
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // 모달 닫기
-                Navigator.of(context).pop(true); // 카메라 페이지 닫기
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-              child: const Text(
-                '확인',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // 모달 닫기
+              Navigator.of(context).pop(true); // 카메라 페이지 닫기
+            },
+            child: const Text(
+              '확인',
+              style: TextStyle(
+                color: Color(0xFFE94B9A),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

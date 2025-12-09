@@ -63,7 +63,10 @@ class _ProfilePageState extends State<ProfilePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.photo_library, color: Color(0xFFE94B9A)),
+                leading: const Icon(
+                  Icons.photo_library,
+                  color: Color(0xFFE94B9A),
+                ),
                 title: const Text('갤러리에서 선택'),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
@@ -139,9 +142,7 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         elevation: 8,
         title: const Text(
           '로그아웃',
@@ -155,10 +156,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         content: const Text(
           '정말 로그아웃 하시겠습니까?',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.black87),
           textAlign: TextAlign.center,
         ),
         actions: [
@@ -236,19 +234,20 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       await _authService.signOut();
-      
+
       if (!mounted) return;
 
       // 로그인 페이지로 이동 (모든 이전 페이지 제거)
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (context) => const ResponsiveLoginPage(firebaseInitialized: true),
+          builder: (context) =>
+              const ResponsiveLoginPage(firebaseInitialized: true),
         ),
         (route) => false,
       );
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _isLoggingOut = false;
       });
@@ -273,36 +272,40 @@ class _ProfilePageState extends State<ProfilePage> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _userData == null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        const Text(
-                          '프로필 정보를 불러올 수 없습니다',
-                          style: TextStyle(color: Colors.grey, fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadProfile,
-                          child: const Text('다시 시도'),
-                        ),
-                      ],
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.grey,
                     ),
-                  )
-                : SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: screenSize.width * 0.05,
-                      vertical: screenSize.height * 0.02,
+                    const SizedBox(height: 16),
+                    const Text(
+                      '프로필 정보를 불러올 수 없습니다',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
-                    child: Column(
-                      children: [
-                        // 프로필 헤더 + 상세 정보 (하나의 카드)
-                        _buildProfileCard(screenSize),
-                      ],
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadProfile,
+                      child: const Text('다시 시도'),
                     ),
-                  ),
+                  ],
+                ),
+              )
+            : SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: screenSize.width * 0.05,
+                  vertical: screenSize.height * 0.02,
+                ),
+                child: Column(
+                  children: [
+                    // 프로필 헤더 + 상세 정보 (하나의 카드)
+                    _buildProfileCard(screenSize),
+                  ],
+                ),
+              ),
       ),
     );
   }
@@ -314,15 +317,21 @@ class _ProfilePageState extends State<ProfilePage> {
     final school = _userData!['school'] as String? ?? '';
     final major = _userData!['major'] as String? ?? '';
     final hasProfileImage = _userData!['profileImageUrl'] != null;
-    final appearanceStyles = (_userData!['appearanceStyles'] as List<dynamic>?)?.cast<String>() ?? [];
-    final styleKeywords = (_userData!['styleKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
-    final personalityKeywords = (_userData!['personalityKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
-    final hobbyOptions = (_userData!['hobbyOptions'] as List<dynamic>?)?.cast<String>() ?? [];
+    final appearanceStyles =
+        (_userData!['appearanceStyles'] as List<dynamic>?)?.cast<String>() ??
+        [];
+    final styleKeywords =
+        (_userData!['styleKeywords'] as List<dynamic>?)?.cast<String>() ?? [];
+    final personalityKeywords =
+        (_userData!['personalityKeywords'] as List<dynamic>?)?.cast<String>() ??
+        [];
+    final hobbyOptions =
+        (_userData!['hobbyOptions'] as List<dynamic>?)?.cast<String>() ?? [];
 
     // appearanceStyles를 외모 스타일로 사용 (styleKeywords는 별도로 표시하지 않음)
     // appearanceStyles가 비어있으면 styleKeywords를 사용
-    final displayAppearanceStyles = appearanceStyles.isNotEmpty 
-        ? appearanceStyles 
+    final displayAppearanceStyles = appearanceStyles.isNotEmpty
+        ? appearanceStyles
         : styleKeywords;
 
     return Container(
@@ -376,7 +385,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         image: hasProfileImage
                             ? DecorationImage(
-                                image: NetworkImage(_userData!['profileImageUrl'] as String),
+                                image: NetworkImage(
+                                  _userData!['profileImageUrl'] as String,
+                                ),
                                 fit: BoxFit.cover,
                               )
                             : null,
@@ -384,31 +395,33 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: _isUploadingImage
                           ? const Center(
                               child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE94B9A)),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFFE94B9A),
+                                ),
                               ),
                             )
                           : hasProfileImage
-                              ? null
-                              : Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.camera_alt,
-                                      size: 30,
-                                      color: Color(0xFFC48EC4),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '이미지\n등록',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: const Color(0xFFC48EC4),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
+                          ? null
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.camera_alt,
+                                  size: 30,
+                                  color: Color(0xFFC48EC4),
                                 ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '이미지\n등록',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: const Color(0xFFC48EC4),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                     if (!_isUploadingImage)
                       Positioned(
@@ -418,7 +431,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           width: 28,
                           height: 28,
                           decoration: BoxDecoration(
-                            color: hasProfileImage ? Colors.red : const Color(0xFFE94B9A),
+                            color: hasProfileImage
+                                ? Colors.red
+                                : const Color(0xFFE94B9A),
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
@@ -451,12 +466,19 @@ class _ProfilePageState extends State<ProfilePage> {
                     if (school.isNotEmpty)
                       Row(
                         children: [
-                          const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                          const Icon(
+                            Icons.location_on,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               school,
-                              style: const TextStyle(color: Colors.grey, fontSize: 14),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -466,12 +488,19 @@ class _ProfilePageState extends State<ProfilePage> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.school, size: 16, color: Colors.grey),
+                          const Icon(
+                            Icons.school,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               major,
-                              style: const TextStyle(color: Colors.grey, fontSize: 14),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -498,22 +527,21 @@ class _ProfilePageState extends State<ProfilePage> {
             _buildTagSection('취미/관심사', hobbyOptions),
           ],
           const SizedBox(height: 24),
-          
+
           // 받은 좋아요 버튼
           _buildReceivedLikesButton(),
           const SizedBox(height: 12),
-          
+
           // 프로필 수정 버튼
           _buildEditButton(),
           const SizedBox(height: 12),
-          
+
           // 로그아웃 버튼
           _buildLogoutButton(),
         ],
       ),
     );
   }
-
 
   // 태그 섹션
   Widget _buildTagSection(String title, List<String> tags) {
@@ -571,9 +599,7 @@ class _ProfilePageState extends State<ProfilePage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => const ReceivedLikesPage(),
-            ),
+            MaterialPageRoute(builder: (context) => const ReceivedLikesPage()),
           );
         },
         style: ElevatedButton.styleFrom(
@@ -587,11 +613,7 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.favorite,
-              color: Color(0xFFE94B9A),
-              size: 20,
-            ),
+            const Icon(Icons.favorite, color: Color(0xFFE94B9A), size: 20),
             const SizedBox(width: 8),
             const Text(
               '받은 좋아요',
@@ -644,11 +666,7 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.edit,
-              color: Color(0xFFE94B9A),
-              size: 20,
-            ),
+            const Icon(Icons.edit, color: Color(0xFFE94B9A), size: 20),
             const SizedBox(width: 8),
             Text(
               '프로필 수정',
@@ -672,10 +690,7 @@ class _ProfilePageState extends State<ProfilePage> {
       height: 48,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: Colors.red.withOpacity(0.4),
-          width: 1.5,
-        ),
+        border: Border.all(color: Colors.red.withOpacity(0.4), width: 1.5),
         color: Colors.red.withOpacity(0.05),
       ),
       child: ElevatedButton(
@@ -700,11 +715,7 @@ class _ProfilePageState extends State<ProfilePage> {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.logout,
-                    color: Colors.red[600],
-                    size: 20,
-                  ),
+                  Icon(Icons.logout, color: Colors.red[600], size: 20),
                   const SizedBox(width: 8),
                   Text(
                     '로그아웃',
@@ -721,4 +732,3 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 }
-
