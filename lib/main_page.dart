@@ -1,6 +1,7 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:rive/rive.dart' hide LinearGradient;
+import 'package:rive/rive.dart' hide LinearGradient, Image;
 import 'services/firestore_service.dart';
 
 class MainPage extends StatefulWidget {
@@ -13,16 +14,20 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _searchController = TextEditingController();
+  final PageController _pageController = PageController();
 
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _filteredUsers = [];
   bool _isLoading = true;
   String _currentUserId = '';
   Timer? _searchDebounce;
-
+  
   // 각 사용자별 Rive 애니메이션 컨트롤러 관리
   final Map<String, StateMachineController> _riveControllers = {};
   final Map<String, SMIInput<bool>?> _isLikedInputs = {};
+  
+  // 확장된 프로필 ID 목록 (세부사항이 보이는 프로필)
+  final Set<String> _expandedProfiles = {};
 
   @override
   void initState() {
@@ -33,6 +38,7 @@ class _MainPageState extends State<MainPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _pageController.dispose();
     // 모든 Rive 컨트롤러 정리
     for (var controller in _riveControllers.values) {
       controller.dispose();
@@ -228,7 +234,7 @@ class _MainPageState extends State<MainPage> {
     try {
       // 해당 사용자의 Rive 애니메이션 트리거
       _isLikedInputs[userId]?.value = true;
-
+      
       await _firestoreService.addLike(userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -242,7 +248,7 @@ class _MainPageState extends State<MainPage> {
     } catch (e) {
       // 실패 시 애니메이션 되돌리기
       _isLikedInputs[userId]?.value = false;
-
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -262,13 +268,6 @@ class _MainPageState extends State<MainPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF3EFF8),
       body: SafeArea(
-        child: Column(
-          children: [
-            // 상단 검색 영역
-            _buildSearchSection(screenSize),
-
-            // 중앙 프로필 카드 리스트
-            Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _filteredUsers.isEmpty
@@ -289,16 +288,27 @@ class _MainPageState extends State<MainPage> {
                         ],
                       ),
                     )
-                  : ListView.builder(
+                : Column(
+                    children: [
+                      // 검색 섹션
+                      _buildSearchSection(screenSize),
+
+                      // 프로필 카드 (스와이프 가능)
+                      Expanded(
+                        child: PageView.builder(
+                          controller: _pageController,
+                          scrollDirection: Axis.vertical,
+                          itemCount: _filteredUsers.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: screenSize.width * 0.05,
                         vertical: screenSize.height * 0.02,
                       ),
-                      itemCount: _filteredUsers.length,
-                      itemBuilder: (context, index) {
-                        return _buildProfileCard(
+                              child: _buildProfileCard(
                           _filteredUsers[index],
                           screenSize,
+                              ),
                         );
                       },
                     ),
@@ -312,13 +322,15 @@ class _MainPageState extends State<MainPage> {
   // 검색 섹션
   Widget _buildSearchSection(Size screenSize) {
     return Container(
-      margin: EdgeInsets.symmetric(
-        horizontal: screenSize.width * 0.05,
-        vertical: screenSize.height * 0.02,
+      margin: EdgeInsets.only(
+        left: screenSize.width * 0.05,
+        right: screenSize.width * 0.05,
+        top: screenSize.height * 0.01,
+        bottom: screenSize.height * 0.01,
       ),
       padding: EdgeInsets.symmetric(
         horizontal: screenSize.width * 0.04,
-        vertical: screenSize.height * 0.02,
+        vertical: screenSize.height * 0.015,
       ),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -347,9 +359,9 @@ class _MainPageState extends State<MainPage> {
           const SizedBox(height: 8),
           const Text(
             '이름, 전공, 학교, 관심사로 검색해보세요',
-            style: TextStyle(color: Colors.grey, fontSize: 12),
+            style: TextStyle(color: Colors.grey, fontSize: 11),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           TextField(
             controller: _searchController,
             onChanged: _onSearchChanged,
@@ -385,6 +397,7 @@ class _MainPageState extends State<MainPage> {
     final school = user['school'] as String? ?? '';
     final major = user['major'] as String? ?? '';
     final bio = user['bio'] as String? ?? '';
+    final profileImageUrl = user['profileImageUrl'] as String?;
     final appearanceStyles =
         (user['appearanceStyles'] as List<dynamic>?)?.cast<String>() ?? [];
     final styleKeywords =
@@ -399,221 +412,347 @@ class _MainPageState extends State<MainPage> {
     }.toList();
 
     return Container(
-      margin: EdgeInsets.only(bottom: screenSize.height * 0.02),
-      padding: EdgeInsets.all(screenSize.width * 0.05),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.1),
             spreadRadius: 2,
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 프로필 이미지 (임시 아이콘)
-          Center(
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFDF6FA),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFE0E0E0), width: 2),
-              ),
-              child: const Icon(
-                Icons.person,
-                size: 60,
-                color: Color(0xFFC48EC4),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // 기본 정보
-          Center(
-            child: Text(
-              '$name, $age',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (school.isNotEmpty)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  school,
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-              ],
-            ),
-          if (major.isNotEmpty)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.school, size: 16, color: Colors.grey),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    major,
-                    style: const TextStyle(color: Colors.grey, fontSize: 14),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          const SizedBox(height: 16),
-
-          // 자기소개
-          if (bio.isNotEmpty)
-            Container(
-              width: double.infinity,
-              height: 80,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFDF6FA),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: SingleChildScrollView(
-                child: Text(
-                  bio,
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 14,
-                    height: 1.4,
-                  ),
-                  maxLines: null,
-                ),
-              ),
-            ),
-          const SizedBox(height: 16),
-
-          // 태그들
-          if (allAppearanceStyles.isNotEmpty) ...[
-            _buildTagSection('외모 스타일', allAppearanceStyles),
-            const SizedBox(height: 12),
-          ],
-          if (personalityKeywords.isNotEmpty) ...[
-            _buildTagSection('성격', personalityKeywords),
-            const SizedBox(height: 16),
-          ],
-
-          // 액션 버튼
-          Container(
-            width: double.infinity,
-            height: 48,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFD6A4E0), Color(0xFFC0A0E0)],
-              ),
-            ),
-            child: ElevatedButton(
-              onPressed: () => _handleLike(user['id'] as String),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: ClipRect(
-                      child: RiveAnimation.asset(
-                        'assets/rive/9864-18818-heart-like.riv',
-                        fit: BoxFit.contain,
-                        onInit: (artboard) {
-                          final userId = user['id'] as String;
-                          print('🎬 Rive onInit 호출됨!');
-                          print(
-                            '🔍 State Machines: ${artboard.stateMachines.map((sm) => sm.name).toList()}',
-                          );
-
-                          StateMachineController? controller;
-                          if (artboard.stateMachines.isNotEmpty) {
-                            // 첫 번째 State Machine 사용
-                            final firstSMName =
-                                artboard.stateMachines.first.name;
-                            controller = StateMachineController.fromArtboard(
-                              artboard,
-                              firstSMName,
-                            );
-                            print('✅ Using State Machine: $firstSMName');
-                          }
-
-                          if (controller != null) {
-                            artboard.addController(controller);
-                            _riveControllers[userId] = controller;
-
-                            // Input 찾기
-                            print(
-                              '🔍 Available inputs: ${controller.inputs.map((i) => '${i.name}').toList()}',
-                            );
-                            _isLikedInputs[userId] =
-                                controller.findInput<bool>('isLiked') ??
-                                controller.findInput<bool>('liked') ??
-                                controller.findInput<bool>('click');
-
-                            if (_isLikedInputs[userId] != null) {
-                              print(
-                                '✅ Input found: ${_isLikedInputs[userId]!.name}',
-                              );
-                            } else {
-                              print('⚠️ Input not found');
-                            }
-                          } else {
-                            print('❌ State Machine Controller not found');
-                          }
-                        },
-                      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(25),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 프로필 이미지 배경
+            profileImageUrl != null && profileImageUrl.isNotEmpty
+                ? Image.network(
+                    profileImageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: const Color(0xFFFDF6FA),
+                        child: const Icon(
+                          Icons.person,
+                          size: 100,
+                          color: Color(0xFFC48EC4),
+                        ),
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: const Color(0xFFFDF6FA),
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    },
+                  )
+                : Container(
+                    color: const Color(0xFFFDF6FA),
+                    child: const Icon(
+                      Icons.person,
+                      size: 100,
+                      color: Color(0xFFC48EC4),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    '좋아요',
-                    style: TextStyle(
+
+            // 그라데이션 오버레이 (텍스트 가독성 향상)
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.3),
+                    Colors.black.withOpacity(0.7),
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
+              ),
+            ),
+
+            // 콘텐츠
+            Padding(
+              padding: EdgeInsets.all(screenSize.width * 0.05),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 기본 정보
+                  Text(
+                    '$name, $age',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                       color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(0, 1),
+                          blurRadius: 3,
+                          color: Colors.black54,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (school.isNotEmpty)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          school,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            shadows: [
+                              Shadow(
+                                offset: Offset(0, 1),
+                                blurRadius: 2,
+                                color: Colors.black54,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (major.isNotEmpty)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.school,
+                          size: 16,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            major,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(0, 1),
+                                  blurRadius: 2,
+                                  color: Colors.black54,
+                                ),
+                              ],
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 12),
+
+                  // 자기소개 (탭 가능)
+                  if (bio.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          final userId = user['id'] as String;
+                          if (_expandedProfiles.contains(userId)) {
+                            _expandedProfiles.remove(userId);
+                          } else {
+                            _expandedProfiles.add(userId);
+                          }
+                        });
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            width: double.infinity,
+                            constraints: const BoxConstraints(maxHeight: 80),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    child: Text(
+                                      bio,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        height: 1.4,
+                                        shadows: [
+                                          Shadow(
+                                            offset: Offset(0, 1),
+                                            blurRadius: 2,
+                                            color: Colors.black54,
+                                          ),
+                                        ],
+                                      ),
+                                      maxLines: null,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  _expandedProfiles.contains(user['id'] as String)
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+
+                  // 태그들 (확장 시에만 표시)
+                  if (_expandedProfiles.contains(user['id'] as String)) ...[
+                    if (allAppearanceStyles.isNotEmpty) ...[
+                      _buildTagSectionOverlay('외모 스타일', allAppearanceStyles),
+                      const SizedBox(height: 8),
+                    ],
+                    if (personalityKeywords.isNotEmpty) ...[
+                      _buildTagSectionOverlay('성격', personalityKeywords),
+                      const SizedBox(height: 12),
+                    ],
+                  ],
+
+                  // 액션 버튼
+                  Container(
+                    width: double.infinity,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFD6A4E0), Color(0xFFC0A0E0)],
+                      ),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () => _handleLike(user['id'] as String),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IgnorePointer(
+                            child: SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: ClipRect(
+                                child: RiveAnimation.asset(
+                                  'assets/rive/9864-18818-heart-like.riv',
+                                  fit: BoxFit.contain,
+                                  onInit: (artboard) {
+                                    final userId = user['id'] as String;
+                                    print('🎬 Rive onInit 호출됨!');
+                                    print(
+                                      '🔍 State Machines: ${artboard.stateMachines.map((sm) => sm.name).toList()}',
+                                    );
+
+                                    StateMachineController? controller;
+                                    if (artboard.stateMachines.isNotEmpty) {
+                                      // 첫 번째 State Machine 사용
+                                      final firstSMName =
+                                          artboard.stateMachines.first.name;
+                                      controller = StateMachineController.fromArtboard(
+                                        artboard,
+                                        firstSMName,
+                                      );
+                                      print('✅ Using State Machine: $firstSMName');
+                                    }
+
+                                    if (controller != null) {
+                                      artboard.addController(controller);
+                                      _riveControllers[userId] = controller;
+
+                                      // Input 찾기
+                                      print(
+                                        '🔍 Available inputs: ${controller.inputs.map((i) => '${i.name}').toList()}',
+                                      );
+                                      _isLikedInputs[userId] =
+                                          controller.findInput<bool>('isLiked') ??
+                                          controller.findInput<bool>('liked') ??
+                                          controller.findInput<bool>('click');
+
+                                      if (_isLikedInputs[userId] != null) {
+                                        print(
+                                          '✅ Input found: ${_isLikedInputs[userId]!.name}',
+                                        );
+                                      } else {
+                                        print('⚠️ Input not found');
+                                      }
+                                    } else {
+                                      print('❌ State Machine Controller not found');
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            '좋아요',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // 태그 섹션
-  Widget _buildTagSection(String title, List<String> tags) {
+  // 태그 섹션 (오버레이용)
+  Widget _buildTagSectionOverlay(String title, List<String> tags) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
           style: const TextStyle(
-            color: Color(0xFF666666),
+            color: Colors.white,
             fontSize: 13,
             fontWeight: FontWeight.w600,
+            shadows: [
+              Shadow(
+                offset: Offset(0, 1),
+                blurRadius: 2,
+                color: Colors.black54,
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 6),
@@ -624,8 +763,12 @@ class _MainPageState extends State<MainPage> {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFFD6A4E0),
+                color: Colors.white.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.5),
+                  width: 1,
+                ),
               ),
               child: Text(
                 tag,
@@ -633,6 +776,13 @@ class _MainPageState extends State<MainPage> {
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(0, 1),
+                      blurRadius: 2,
+                      color: Colors.black54,
+                    ),
+                  ],
                 ),
               ),
             );

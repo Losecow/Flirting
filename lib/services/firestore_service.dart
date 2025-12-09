@@ -422,6 +422,73 @@ class FirestoreService {
             userData['sharedKakaoId'] = '';
           }
 
+          // 콕 찌르기 여부 확인 (userId가 나를 콕 찔렀는지)
+          final pokeDoc = await _db
+              .collection('users')
+              .doc(uid)
+              .collection('pokes')
+              .doc(userId)
+              .get();
+
+          userData['hasPokedMe'] = pokeDoc.exists;
+          if (pokeDoc.exists) {
+            userData['pokedAt'] = pokeDoc.data()?['pokedAt'];
+          }
+
+          // 내가 이 사용자를 콕 찔렀는지 확인 및 횟수
+          // 상대방의 pokes 컬렉션에서 내가 찔렀는지 확인
+          final myPokeDoc = await _db
+              .collection('users')
+              .doc(userId)
+              .collection('pokes')
+              .doc(uid)
+              .get();
+
+          userData['hasPokedByMe'] = myPokeDoc.exists;
+          String? lastPokedByMe;
+          if (myPokeDoc.exists) {
+            userData['pokedByMeAt'] = myPokeDoc.data()?['pokedAt'];
+            userData['pokedByMeCount'] = myPokeDoc.data()?['count'] as int? ?? 0;
+            lastPokedByMe = myPokeDoc.data()?['lastPokedBy'] as String?;
+            userData['lastPokedByMe'] = lastPokedByMe;
+          } else {
+            userData['pokedByMeCount'] = 0;
+            userData['lastPokedByMe'] = null;
+          }
+
+          // 상대방이 나를 콕 찔렀는지 확인 및 횟수
+          // 내 pokes 컬렉션에서 상대방이 찔렀는지 확인
+          String? lastPokedMe;
+          if (pokeDoc.exists) {
+            userData['pokedMeCount'] = pokeDoc.data()?['count'] as int? ?? 0;
+            lastPokedMe = pokeDoc.data()?['lastPokedBy'] as String?;
+            userData['lastPokedMe'] = lastPokedMe;
+          } else {
+            userData['pokedMeCount'] = 0;
+            userData['lastPokedMe'] = null;
+          }
+
+          // 찌를 수 있는지 확인
+          // 1. 아무도 찌르지 않았으면 찌를 수 있음
+          // 2. 상대방이 마지막으로 찔렀으면 찌를 수 있음 (lastPokedMe == userId)
+          // 3. 내가 마지막으로 찔렀으면 찌를 수 없음 (lastPokedByMe == uid)
+          bool canPoke;
+          if (lastPokedByMe == null && lastPokedMe == null) {
+            // 아무도 찌르지 않음
+            canPoke = true;
+          } else if (lastPokedByMe == uid) {
+            // 내가 마지막으로 찔렀음
+            canPoke = false;
+          } else if (lastPokedMe == userId) {
+            // 상대방이 마지막으로 찔렀음
+            canPoke = true;
+          } else {
+            // 기본적으로 찌를 수 있음
+            canPoke = true;
+          }
+          
+          userData['canPoke'] = canPoke;
+
           receivedLikes.add(userData);
         }
       }
@@ -452,6 +519,101 @@ class FirestoreService {
       print('✅ 정보 공개 완료: $targetUserId에게 내 정보 공개');
     } catch (e) {
       print('❌ 정보 공개 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 상대방을 콕 찌르기
+  Future<void> pokeUser(String targetUserId) async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      // 상대방의 pokes 컬렉션에 콕 찌르기 정보 추가 (횟수 증가)
+      final pokeRef = _db
+          .collection('users')
+          .doc(targetUserId)
+          .collection('pokes')
+          .doc(uid);
+
+      final pokeDoc = await pokeRef.get();
+      
+      if (pokeDoc.exists) {
+        // 이미 존재하면 횟수 증가
+        final currentCount = (pokeDoc.data()?['count'] as int? ?? 0) + 1;
+        await pokeRef.update({
+          'pokedBy': uid,
+          'lastPokedBy': uid, // 마지막으로 찌른 사람
+          'pokedAt': FieldValue.serverTimestamp(),
+          'count': currentCount,
+        });
+      } else {
+        // 처음 콕 찌르기면 생성
+        await pokeRef.set({
+          'pokedBy': uid,
+          'lastPokedBy': uid, // 마지막으로 찌른 사람
+          'pokedAt': FieldValue.serverTimestamp(),
+          'count': 1,
+        });
+      }
+
+      print('✅ 콕 찌르기 완료: $targetUserId를 콕 찔렀습니다');
+    } catch (e) {
+      print('❌ 콕 찌르기 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 나를 콕 찌른 사용자 목록 가져오기
+  Future<List<String>> getPokedByUsers() async {
+    final uid = _userId;
+    if (uid == null) {
+      return [];
+    }
+
+    try {
+      final pokesSnapshot = await _db
+          .collection('users')
+          .doc(uid)
+          .collection('pokes')
+          .get();
+
+      return pokesSnapshot.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      print('❌ 콕 찌르기 목록 가져오기 실패: $e');
+      return [];
+    }
+  }
+
+  /// 모든 콕 찌르기 데이터 삭제 (개발/테스트용)
+  Future<void> clearAllPokes() async {
+    try {
+      print('🔥 콕 찌르기 데이터 삭제 시작...');
+      
+      // 모든 사용자의 pokes 서브컬렉션 삭제
+      final usersSnapshot = await _db.collection('users').get();
+      
+      int totalDeleted = 0;
+      
+      for (var userDoc in usersSnapshot.docs) {
+        final userId = userDoc.id;
+        final pokesSnapshot = await _db
+            .collection('users')
+            .doc(userId)
+            .collection('pokes')
+            .get();
+        
+        for (var pokeDoc in pokesSnapshot.docs) {
+          await pokeDoc.reference.delete();
+          totalDeleted++;
+        }
+      }
+
+      print('✅ 모든 콕 찌르기 데이터 삭제 완료! (총 $totalDeleted개 문서 삭제)');
+    } catch (e) {
+      print('❌ 콕 찌르기 데이터 삭제 실패: $e');
       rethrow;
     }
   }
