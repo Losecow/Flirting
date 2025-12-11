@@ -446,8 +446,11 @@ class FirestoreService {
 
           userData['hasPokedByMe'] = myPokeDoc.exists;
           String? lastPokedByMe;
+          DateTime? lastPokedByMeAt;
           if (myPokeDoc.exists) {
-            userData['pokedByMeAt'] = myPokeDoc.data()?['pokedAt'];
+            final ts = myPokeDoc.data()?['pokedAt'] as Timestamp?;
+            lastPokedByMeAt = ts?.toDate();
+            userData['pokedByMeAt'] = ts;
             userData['pokedByMeCount'] = myPokeDoc.data()?['count'] as int? ?? 0;
             lastPokedByMe = myPokeDoc.data()?['lastPokedBy'] as String?;
             userData['lastPokedByMe'] = lastPokedByMe;
@@ -457,9 +460,11 @@ class FirestoreService {
           }
 
           // 상대방이 나를 콕 찔렀는지 확인 및 횟수
-          // 내 pokes 컬렉션에서 상대방이 찔렀는지 확인
           String? lastPokedMe;
+          DateTime? lastPokedMeAt;
           if (pokeDoc.exists) {
+            final ts = pokeDoc.data()?['pokedAt'] as Timestamp?;
+            lastPokedMeAt = ts?.toDate();
             userData['pokedMeCount'] = pokeDoc.data()?['count'] as int? ?? 0;
             lastPokedMe = pokeDoc.data()?['lastPokedBy'] as String?;
             userData['lastPokedMe'] = lastPokedMe;
@@ -468,25 +473,21 @@ class FirestoreService {
             userData['lastPokedMe'] = null;
           }
 
-          // 찌를 수 있는지 확인
-          // 1. 아무도 찌르지 않았으면 찌를 수 있음
-          // 2. 상대방이 마지막으로 찔렀으면 찌를 수 있음 (lastPokedMe == userId)
-          // 3. 내가 마지막으로 찔렀으면 찌를 수 없음 (lastPokedByMe == uid)
-          bool canPoke;
-          if (lastPokedByMe == null && lastPokedMe == null) {
-            // 아무도 찌르지 않음
-            canPoke = true;
-          } else if (lastPokedByMe == uid) {
-            // 내가 마지막으로 찔렀음
-            canPoke = false;
-          } else if (lastPokedMe == userId) {
-            // 상대방이 마지막으로 찔렀음
-            canPoke = true;
+          // 가장 최근 poke 기록 기준으로 버튼 활성화 결정
+          String? lastPokeFromUserId;
+          if (lastPokedByMeAt != null && lastPokedMeAt != null) {
+            lastPokeFromUserId =
+                lastPokedByMeAt.isAfter(lastPokedMeAt) ? lastPokedByMe : lastPokedMe;
+          } else if (lastPokedByMeAt != null) {
+            lastPokeFromUserId = lastPokedByMe;
+          } else if (lastPokedMeAt != null) {
+            lastPokeFromUserId = lastPokedMe;
           } else {
-            // 기본적으로 찌를 수 있음
-            canPoke = true;
+            lastPokeFromUserId = null;
           }
-          
+
+          final bool canPoke = lastPokeFromUserId == null || lastPokeFromUserId != uid;
+          userData['lastPokeFromUserId'] = lastPokeFromUserId;
           userData['canPoke'] = canPoke;
 
           receivedLikes.add(userData);
