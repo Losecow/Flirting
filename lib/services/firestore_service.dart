@@ -451,7 +451,8 @@ class FirestoreService {
             final ts = myPokeDoc.data()?['pokedAt'] as Timestamp?;
             lastPokedByMeAt = ts?.toDate();
             userData['pokedByMeAt'] = ts;
-            userData['pokedByMeCount'] = myPokeDoc.data()?['count'] as int? ?? 0;
+            userData['pokedByMeCount'] =
+                myPokeDoc.data()?['count'] as int? ?? 0;
             lastPokedByMe = myPokeDoc.data()?['lastPokedBy'] as String?;
             userData['lastPokedByMe'] = lastPokedByMe;
           } else {
@@ -476,8 +477,9 @@ class FirestoreService {
           // 가장 최근 poke 기록 기준으로 버튼 활성화 결정
           String? lastPokeFromUserId;
           if (lastPokedByMeAt != null && lastPokedMeAt != null) {
-            lastPokeFromUserId =
-                lastPokedByMeAt.isAfter(lastPokedMeAt) ? lastPokedByMe : lastPokedMe;
+            lastPokeFromUserId = lastPokedByMeAt.isAfter(lastPokedMeAt)
+                ? lastPokedByMe
+                : lastPokedMe;
           } else if (lastPokedByMeAt != null) {
             lastPokeFromUserId = lastPokedByMe;
           } else if (lastPokedMeAt != null) {
@@ -486,7 +488,8 @@ class FirestoreService {
             lastPokeFromUserId = null;
           }
 
-          final bool canPoke = lastPokeFromUserId == null || lastPokeFromUserId != uid;
+          final bool canPoke =
+              lastPokeFromUserId == null || lastPokeFromUserId != uid;
           userData['lastPokeFromUserId'] = lastPokeFromUserId;
           userData['canPoke'] = canPoke;
 
@@ -540,7 +543,7 @@ class FirestoreService {
           .doc(uid);
 
       final pokeDoc = await pokeRef.get();
-      
+
       if (pokeDoc.exists) {
         // 이미 존재하면 횟수 증가
         final currentCount = (pokeDoc.data()?['count'] as int? ?? 0) + 1;
@@ -592,12 +595,12 @@ class FirestoreService {
   Future<void> clearAllPokes() async {
     try {
       print('🔥 콕 찌르기 데이터 삭제 시작...');
-      
+
       // 모든 사용자의 pokes 서브컬렉션 삭제
       final usersSnapshot = await _db.collection('users').get();
-      
+
       int totalDeleted = 0;
-      
+
       for (var userDoc in usersSnapshot.docs) {
         final userId = userDoc.id;
         final pokesSnapshot = await _db
@@ -605,7 +608,7 @@ class FirestoreService {
             .doc(userId)
             .collection('pokes')
             .get();
-        
+
         for (var pokeDoc in pokesSnapshot.docs) {
           await pokeDoc.reference.delete();
           totalDeleted++;
@@ -777,6 +780,217 @@ class FirestoreService {
       print('✅ 학교 및 전공 데이터 초기화 완료!');
     } catch (e) {
       print('❌ 학교 및 전공 데이터 초기화 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 말투 스타일 저장
+  Future<void> upsertSpeechStyle(String speechStyle) async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      await _userDoc.set({
+        'speechStyle': speechStyle,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      print('✅ 말투 스타일 저장 완료: $speechStyle');
+    } catch (e) {
+      print('❌ 말투 스타일 저장 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 채팅 메시지 전송
+  Future<void> sendChatMessage(String targetUserId, String text) async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      // 양방향 채팅을 위한 채팅방 ID 생성 (정렬하여 항상 같은 ID)
+      final chatRoomId = _getChatRoomId(uid, targetUserId);
+
+      // 메시지 저장
+      await _db.collection('chats').doc(chatRoomId).collection('messages').add({
+        'senderId': uid,
+        'receiverId': targetUserId,
+        'text': text,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // 채팅방 정보 업데이트
+      await _db.collection('chats').doc(chatRoomId).set({
+        'participants': [uid, targetUserId],
+        'lastMessage': text,
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      print('✅ 채팅 메시지 전송 완료');
+    } catch (e) {
+      print('❌ 채팅 메시지 전송 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 채팅 메시지 목록 가져오기
+  Future<List<Map<String, dynamic>>> getChatMessages(
+    String targetUserId,
+  ) async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      final chatRoomId = _getChatRoomId(uid, targetUserId);
+      final snapshot = await _db
+          .collection('chats')
+          .doc(chatRoomId)
+          .collection('messages')
+          .orderBy('createdAt', descending: false)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      print('❌ 채팅 메시지 목록 가져오기 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 채팅방 ID 생성 (정렬하여 항상 같은 ID)
+  String _getChatRoomId(String userId1, String userId2) {
+    final sortedIds = [userId1, userId2]..sort();
+    return '${sortedIds[0]}_${sortedIds[1]}';
+  }
+
+  /// 채팅방 생성 또는 가져오기
+  Future<void> createOrGetChatRoom(String targetUserId) async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      final chatRoomId = _getChatRoomId(uid, targetUserId);
+
+      // 채팅방이 이미 존재하는지 확인
+      final chatRoomDoc = await _db.collection('chats').doc(chatRoomId).get();
+
+      // 채팅방이 없으면 생성
+      if (!chatRoomDoc.exists) {
+        await _db.collection('chats').doc(chatRoomId).set({
+          'participants': [uid, targetUserId],
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        print('✅ 채팅방 생성 완료: $chatRoomId');
+      }
+    } catch (e) {
+      print('❌ 채팅방 생성 실패: $e');
+      rethrow;
+    }
+  }
+
+  /// 특정 사용자와의 정보 공개 여부 확인
+  Future<bool> hasSharedInfoWithUser(String targetUserId) async {
+    final uid = _userId;
+    if (uid == null) {
+      return false;
+    }
+
+    try {
+      // 상대방이 나에게 정보를 공개했는지 확인
+      final sharedInfoDoc = await _db
+          .collection('users')
+          .doc(uid)
+          .collection('sharedInfo')
+          .doc(targetUserId)
+          .get();
+
+      return sharedInfoDoc.exists;
+    } catch (e) {
+      print('❌ 정보 공개 여부 확인 실패: $e');
+      return false;
+    }
+  }
+
+  /// 채팅방 목록 가져오기
+  Future<List<Map<String, dynamic>>> getChatRooms() async {
+    final uid = _userId;
+    if (uid == null) {
+      throw Exception('로그인한 사용자가 없습니다.');
+    }
+
+    try {
+      // 현재 사용자가 참여한 채팅방 목록 가져오기
+      // lastMessageAt이 없는 채팅방도 포함하기 위해 orderBy 없이 먼저 가져온 후 정렬
+      final snapshot = await _db
+          .collection('chats')
+          .where('participants', arrayContains: uid)
+          .get();
+
+      final chatRooms = <Map<String, dynamic>>[];
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final participants =
+            (data['participants'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [];
+
+        // 상대방 ID 찾기
+        final otherUserId = participants.firstWhere(
+          (id) => id != uid,
+          orElse: () => '',
+        );
+
+        if (otherUserId.isEmpty) continue;
+
+        // 상대방 정보 가져오기
+        final otherUserDoc = await getUserDocument(otherUserId);
+        if (!otherUserDoc.exists) continue;
+
+        final otherUserData = otherUserDoc.data()!;
+        otherUserData['id'] = otherUserDoc.id;
+
+        // lastMessageAt이 없으면 updatedAt 또는 createdAt 사용
+        final lastMessageAt =
+            data['lastMessageAt'] ?? data['updatedAt'] ?? data['createdAt'];
+
+        chatRooms.add({
+          'chatRoomId': doc.id,
+          'otherUser': otherUserData,
+          'lastMessage': data['lastMessage'] as String? ?? '',
+          'lastMessageAt': lastMessageAt,
+          'unreadCount': 0, // TODO: 읽지 않은 메시지 수 계산
+        });
+      }
+
+      // lastMessageAt 기준으로 정렬 (최신순)
+      chatRooms.sort((a, b) {
+        final aTime = a['lastMessageAt'] as Timestamp?;
+        final bTime = b['lastMessageAt'] as Timestamp?;
+
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return 1; // null은 뒤로
+        if (bTime == null) return -1; // null은 뒤로
+
+        return bTime.compareTo(aTime); // 내림차순
+      });
+
+      return chatRooms;
+    } catch (e) {
+      print('❌ 채팅방 목록 가져오기 실패: $e');
       rethrow;
     }
   }

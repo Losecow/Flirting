@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart' hide LinearGradient, Image;
 import 'services/firestore_service.dart';
+import 'chat_list_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -21,11 +22,11 @@ class _MainPageState extends State<MainPage> {
   bool _isLoading = true;
   String _currentUserId = '';
   Timer? _searchDebounce;
-  
+
   // 각 사용자별 Rive 애니메이션 컨트롤러 관리
   final Map<String, StateMachineController> _riveControllers = {};
   final Map<String, SMIInput<bool>?> _isLikedInputs = {};
-  
+
   // 확장된 프로필 ID 목록 (세부사항이 보이는 프로필)
   final Set<String> _expandedProfiles = {};
 
@@ -234,7 +235,7 @@ class _MainPageState extends State<MainPage> {
     try {
       // 해당 사용자의 Rive 애니메이션 트리거
       _isLikedInputs[userId]?.value = true;
-      
+
       await _firestoreService.addLike(userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -248,7 +249,7 @@ class _MainPageState extends State<MainPage> {
     } catch (e) {
       // 실패 시 애니메이션 되돌리기
       _isLikedInputs[userId]?.value = false;
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -268,27 +269,25 @@ class _MainPageState extends State<MainPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF3EFF8),
       body: SafeArea(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _filteredUsers.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.search_off,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            '검색 결과가 없습니다',
-                            style: TextStyle(color: Colors.grey, fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    )
-                : Column(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _filteredUsers.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '검색 결과가 없습니다',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                  ],
+                ),
+              )
+            : Stack(
+                children: [
+                  Column(
                     children: [
                       // 검색 섹션
                       _buildSearchSection(screenSize),
@@ -301,20 +300,28 @@ class _MainPageState extends State<MainPage> {
                           itemCount: _filteredUsers.length,
                           itemBuilder: (context, index) {
                             return Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: screenSize.width * 0.05,
-                        vertical: screenSize.height * 0.02,
-                      ),
-                              child: _buildProfileCard(
-                          _filteredUsers[index],
-                          screenSize,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: screenSize.width * 0.05,
+                                vertical: screenSize.height * 0.02,
                               ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
+                              child: _buildProfileCard(
+                                _filteredUsers[index],
+                                screenSize,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  // 채팅 버튼 (네비게이션 바 위)
+                  Positioned(
+                    bottom: 80, // 네비게이션 바 높이 + 여유 공간
+                    right: screenSize.width * 0.05,
+                    child: _buildChatButton(),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -447,9 +454,7 @@ class _MainPageState extends State<MainPage> {
                       if (loadingProgress == null) return child;
                       return Container(
                         color: const Color(0xFFFDF6FA),
-                        child: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                        child: const Center(child: CircularProgressIndicator()),
                       );
                     },
                   )
@@ -610,7 +615,9 @@ class _MainPageState extends State<MainPage> {
                                 ),
                                 const SizedBox(width: 8),
                                 Icon(
-                                  _expandedProfiles.contains(user['id'] as String)
+                                  _expandedProfiles.contains(
+                                        user['id'] as String,
+                                      )
                                       ? Icons.keyboard_arrow_up
                                       : Icons.keyboard_arrow_down,
                                   color: Colors.white,
@@ -678,11 +685,14 @@ class _MainPageState extends State<MainPage> {
                                       // 첫 번째 State Machine 사용
                                       final firstSMName =
                                           artboard.stateMachines.first.name;
-                                      controller = StateMachineController.fromArtboard(
-                                        artboard,
-                                        firstSMName,
+                                      controller =
+                                          StateMachineController.fromArtboard(
+                                            artboard,
+                                            firstSMName,
+                                          );
+                                      print(
+                                        '✅ Using State Machine: $firstSMName',
                                       );
-                                      print('✅ Using State Machine: $firstSMName');
                                     }
 
                                     if (controller != null) {
@@ -694,7 +704,9 @@ class _MainPageState extends State<MainPage> {
                                         '🔍 Available inputs: ${controller.inputs.map((i) => '${i.name}').toList()}',
                                       );
                                       _isLikedInputs[userId] =
-                                          controller.findInput<bool>('isLiked') ??
+                                          controller.findInput<bool>(
+                                            'isLiked',
+                                          ) ??
                                           controller.findInput<bool>('liked') ??
                                           controller.findInput<bool>('click');
 
@@ -706,7 +718,9 @@ class _MainPageState extends State<MainPage> {
                                         print('⚠️ Input not found');
                                       }
                                     } else {
-                                      print('❌ State Machine Controller not found');
+                                      print(
+                                        '❌ State Machine Controller not found',
+                                      );
                                     }
                                   },
                                 ),
@@ -731,6 +745,34 @@ class _MainPageState extends State<MainPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // 채팅 버튼
+  Widget _buildChatButton() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ChatListPage()),
+        );
+      },
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE94B9A),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Icon(Icons.chat_bubble, color: Colors.white, size: 28),
       ),
     );
   }

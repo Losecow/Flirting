@@ -61,6 +61,9 @@ dependencies:
   # HTTP
   http: ^1.2.0
 
+  # Google Generative AI (Gemini)
+  google_generative_ai: ^0.2.2
+
   # Rive Animation
   rive: ^0.13.20
 

@@ -7,6 +7,8 @@ import 'providers/auth_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/search_provider.dart';
 import 'providers/likes_provider.dart';
+import 'providers/chat_provider.dart';
+import 'providers/speech_style_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,6 +79,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => LikesProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => SpeechStyleProvider()),
       ],
       child: MaterialApp(
         title: 'Campus Match',

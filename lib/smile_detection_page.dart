@@ -155,7 +155,7 @@ class _SmileDetectionPageState extends State<SmileDetectionPage> {
     });
 
     try {
-      // 현재 사용자의 연락처 정보 가져오기
+      // 현재 사용자의 SNS 정보 가져오기
       final currentUser = await _firestoreService.getCurrentUser();
       if (currentUser == null) {
         throw Exception('사용자 정보를 가져올 수 없습니다.');
@@ -185,7 +185,7 @@ class _SmileDetectionPageState extends State<SmileDetectionPage> {
       await _shareMyInfo();
 
       if (mounted) {
-        // 연락처 정보 표시 모달
+        // SNS 정보 표시 모달
         _showContactInfoModal(instagramId, kakaoId);
       }
     } catch (e) {
@@ -243,7 +243,7 @@ class _SmileDetectionPageState extends State<SmileDetectionPage> {
     );
   }
 
-  /// 연락처 정보 표시 모달
+  /// SNS 정보 표시 모달
   void _showContactInfoModal(String instagramId, String kakaoId) {
     showDialog(
       context: context,
@@ -251,7 +251,7 @@ class _SmileDetectionPageState extends State<SmileDetectionPage> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         title: const Text(
-          '연락처 정보',
+          'SNS 정보',
           style: TextStyle(
             color: Color(0xFFE94B9A),
             fontSize: 24,
@@ -463,7 +463,7 @@ class _SmileDetectionPageState extends State<SmileDetectionPage> {
                         child: Column(
                           children: [
                             const Text(
-                              '웃음 확률',
+                              '웃음의 정도',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,

@@ -49,3 +49,6 @@ app.*.map.json
 **/GoogleService-Info.plist
 ios/Runner/GoogleService-Info.plist
 android/app/google-services.json
+
+# API Keys (contains sensitive information)
+lib/config/api_key.dart

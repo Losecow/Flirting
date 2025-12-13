@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'services/firestore_service.dart';
 import 'smile_detection_page.dart';
+import 'chat_page.dart';
 
 class LikesPage extends StatefulWidget {
   const LikesPage({super.key});
@@ -260,6 +261,31 @@ class _ProfileModal extends StatefulWidget {
 }
 
 class _ProfileModalState extends State<_ProfileModal> {
+  final FirestoreService _firestoreService = FirestoreService();
+  bool _hasSharedInfo = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSharedInfo();
+  }
+
+  Future<void> _checkSharedInfo() async {
+    final firestoreService = FirestoreService();
+    final currentUser = await firestoreService.getCurrentUser();
+    if (currentUser != null) {
+      final hasShared = await firestoreService.hasSharedInfoWithUser(
+        widget.userData['id'] as String? ?? '',
+      );
+      if (mounted) {
+        setState(() {
+          _hasSharedInfo = hasShared;
+          widget.userData['hasSharedInfo'] = hasShared;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
@@ -475,6 +501,10 @@ class _ProfileModalState extends State<_ProfileModal> {
 
                       // 내 정보 공개하기 버튼
                       _buildShareInfoButton(screenSize),
+                      const SizedBox(height: 12),
+
+                      // 채팅 시작 버튼 (정보 공개 완료 시만 활성화)
+                      _buildStartChatButton(screenSize),
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -509,8 +539,8 @@ class _ProfileModalState extends State<_ProfileModal> {
             ),
           ).then((success) {
             if (success == true && mounted) {
-              // 정보 공개 성공 시 모달 닫기
-              Navigator.of(context).pop();
+              // 정보 공개 성공 시 모달 새로고침
+              setState(() {});
             }
           });
         },
@@ -529,6 +559,82 @@ class _ProfileModalState extends State<_ProfileModal> {
             fontWeight: FontWeight.w600,
             fontFamily: 'Bagel Fat One',
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStartChatButton(Size screenSize) {
+    final hasSharedInfo =
+        _hasSharedInfo || (widget.userData['hasSharedInfo'] as bool? ?? false);
+    final userId = widget.userData['id'] as String? ?? '';
+    final userName = widget.userData['name'] as String? ?? '이름 없음';
+    final userImageUrl = widget.userData['profileImageUrl'] as String?;
+
+    return Container(
+      width: double.infinity,
+      height: 48,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        color: hasSharedInfo ? const Color(0xFFE94B9A) : Colors.grey[300],
+      ),
+      child: ElevatedButton(
+        onPressed: hasSharedInfo
+            ? () async {
+                // 채팅방 생성 또는 가져오기
+                try {
+                  await _firestoreService.createOrGetChatRoom(userId);
+                  // 채팅 페이지로 이동
+                  if (mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatPage(
+                          targetUserId: userId,
+                          targetUserName: userName,
+                          targetUserImageUrl: userImageUrl,
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('채팅방 생성 실패: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }
+            : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          disabledBackgroundColor: Colors.grey[300],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.chat_bubble_outline,
+              color: hasSharedInfo ? Colors.white : Colors.grey[600],
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              hasSharedInfo ? '채팅 시작하기' : '정보 공개 후 채팅 가능',
+              style: TextStyle(
+                color: hasSharedInfo ? Colors.white : Colors.grey[600],
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
