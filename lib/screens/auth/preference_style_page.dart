@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'services/firestore_service.dart';
-import 'main_navigation.dart';
+import '../../services/firestore_service.dart';
+import '../main_navigation.dart';
 
 class PreferenceStylePage extends StatefulWidget {
   const PreferenceStylePage({super.key});

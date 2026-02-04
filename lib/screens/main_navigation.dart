@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'main_page.dart';
-import 'profile_page.dart';
-import 'likes_page.dart';
-import 'services/location_service.dart';
-import 'services/firestore_service.dart';
+import 'home/main_page.dart';
+import 'profile/profile_page.dart';
+import 'likes/likes_page.dart';
+import '../services/location_service.dart';
+import '../services/firestore_service.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});

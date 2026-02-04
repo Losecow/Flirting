@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'dart:io' show Platform, File;
-import 'login_page.dart'; // ResponsiveLoginPage가 있는 파일
+import 'screens/auth/login_page.dart'; // ResponsiveLoginPage가 있는 파일
 import 'providers/auth_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/search_provider.dart';

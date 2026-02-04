@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'services/firestore_service.dart';
+import '../../services/firestore_service.dart';
 import 'profile_setting_page.dart';
 
 class ProfileInfoPage extends StatefulWidget {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'services/firestore_service.dart';
+import '../../services/firestore_service.dart';
 
 /// 받은 좋아요 목록 페이지
 class ReceivedLikesPage extends StatefulWidget {

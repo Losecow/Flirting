@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'services/firestore_service.dart';
-import 'preference_style_page.dart';
+import '../../services/firestore_service.dart';
+import '../auth/preference_style_page.dart';
 
 class ProfileSettingPage extends StatefulWidget {
   const ProfileSettingPage({super.key});

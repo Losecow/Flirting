@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'services/firestore_service.dart';
-import 'services/auth_service.dart';
-import 'services/storage_service.dart';
-import 'login_page.dart';
+import '../../services/firestore_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/storage_service.dart';
+import '../auth/login_page.dart';
 import 'profile_edit_page.dart';
-import 'received_likes_page.dart';
+import '../likes/received_likes_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});

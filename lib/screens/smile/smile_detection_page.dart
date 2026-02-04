@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'services/firestore_service.dart';
+import '../../services/firestore_service.dart';
 import 'package:flutter/services.dart';
 
 /// 웃음 감지 카메라 페이지

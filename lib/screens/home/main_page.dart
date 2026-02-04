@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart' hide LinearGradient, Image;
-import 'services/firestore_service.dart';
-import 'chat_list_page.dart';
+import '../../services/firestore_service.dart';
+import '../chat/chat_list_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});

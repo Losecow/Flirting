@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'services/firestore_service.dart';
+import '../../services/firestore_service.dart';
 
 class ProfileEditPage extends StatefulWidget {
   final Map<String, dynamic> userData;

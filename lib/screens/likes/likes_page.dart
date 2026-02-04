@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'services/firestore_service.dart';
-import 'smile_detection_page.dart';
-import 'chat_page.dart';
+import '../../services/firestore_service.dart';
+import '../smile/smile_detection_page.dart';
+import '../chat/chat_page.dart';
 
 class LikesPage extends StatefulWidget {
   const LikesPage({super.key});

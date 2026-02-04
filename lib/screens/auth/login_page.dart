@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'school_info_page.dart';
-import 'services/auth_service.dart';
+import '../../services/auth_service.dart';
 
 class ResponsiveLoginPage extends StatefulWidget {
   final bool firebaseInitialized;

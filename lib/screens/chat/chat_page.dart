@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'providers/chat_provider.dart';
-import 'providers/speech_style_provider.dart';
+import '../../providers/chat_provider.dart';
+import '../../providers/speech_style_provider.dart';
 
 class ChatPage extends StatefulWidget {
   final String targetUserId;
