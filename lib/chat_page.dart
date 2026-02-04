@@ -24,7 +24,6 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isConverting = false;
-  bool _showConversionSuccess = false;
 
   @override
   void initState() {
@@ -81,20 +80,6 @@ class _ChatPageState extends State<ChatPage> {
       _messageController.selection = TextSelection.fromPosition(
         TextPosition(offset: convertedText.length),
       );
-
-      if (mounted) {
-        setState(() {
-          _showConversionSuccess = true;
-        });
-        // 2초 후 자동으로 숨김
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            setState(() {
-              _showConversionSuccess = false;
-            });
-          }
-        });
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -210,52 +195,7 @@ class _ChatPageState extends State<ChatPage> {
           ),
 
           // 메시지 입력 바
-          Stack(
-            children: [
-              _buildMessageInputBar(screenSize),
-              // 변환 완료 스낵바 (입력창 위)
-              if (_showConversionSuccess)
-                Positioned(
-                  bottom: 80, // 입력창 높이 + 여유 공간
-                  left: screenSize.width * 0.05,
-                  right: screenSize.width * 0.05,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.white, size: 20),
-                        SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            '말투가 변환되었습니다. 확인 후 전송 버튼을 눌러주세요.',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          _buildMessageInputBar(screenSize),
         ],
       ),
     );

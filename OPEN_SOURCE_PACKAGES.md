@@ -25,6 +25,239 @@
 
 이 프로젝트는 Google의 오픈소스 패키지들을 활용하여 현대적이고 안정적인 모바일 앱을 구현했습니다.
 
+---
+
+## Widget / Plugin 구성
+
+### 주요 Flutter Widget
+
+**페이지 위젯 (StatefulWidget):**
+
+- `ResponsiveLoginPage` - 로그인 페이지 (Google 로그인)
+- `MainNavigation` - 하단 네비게이션 바 (검색, 좋아요, 프로필)
+- `MainPage` - 사용자 검색 및 프로필 카드 스와이프 페이지
+- `LikesPage` - Google Maps 기반 좋아요한 사용자 지도 표시
+- `ProfilePage` - 내 프로필 관리 페이지
+- `ProfileEditPage` - 프로필 편집 페이지
+- `ChatPage` - 1:1 채팅 페이지 (AI 말투 변환 포함)
+- `ChatListPage` - 채팅방 목록 페이지
+- `SmileDetectionPage` - 웃음 감지 카메라 페이지
+- `SchoolInfoPage` - 학교/전공 정보 입력 페이지
+- `PreferenceStylePage` - 선호 스타일 선택 페이지
+
+**주요 UI 위젯:**
+
+- `GoogleMap` - 지도 표시 (google_maps_flutter)
+- `CameraPreview` - 카메라 미리보기 (camera)
+- `TextField` - 텍스트 입력
+- `ListView.builder` - 스크롤 가능한 리스트
+- `PageView` - 스와이프 가능한 페이지 뷰
+- `CircleAvatar` - 프로필 이미지 표시
+- `RiveAnimation` - 하트 애니메이션 (rive)
+
+### 주요 Plugin / Package
+
+**Firebase 관련:**
+
+- `firebase_core` - Firebase 초기화
+- `firebase_auth` - 사용자 인증
+- `cloud_firestore` - NoSQL 데이터베이스
+- `firebase_storage` - 파일 저장소
+
+**Google 서비스:**
+
+- `google_sign_in` - Google 로그인
+- `google_maps_flutter` - Google Maps 지도
+- `google_mlkit_face_detection` - 얼굴 감지
+- `google_generative_ai` - Gemini AI
+
+**미디어/카메라:**
+
+- `camera` - 카메라 접근
+- `image_picker` - 이미지 선택
+
+**위치/권한:**
+
+- `geolocator` - 위치 정보
+- `permission_handler` - 권한 관리
+
+**상태 관리:**
+
+- `provider` - 상태 관리 (Provider 패턴)
+
+**애니메이션:**
+
+- `rive` - Rive 애니메이션
+
+---
+
+## Firebase Service 사용 현황
+
+### 1. Firebase Authentication
+
+**사용 위치:** `lib/services/auth_service.dart`
+
+**주요 기능:**
+
+- Google 로그인 (`signInWithGoogle`)
+- 로그아웃 (`signOut`)
+- 인증 상태 스트림 (`authStateChanges`)
+- 현재 사용자 확인 (`currentUser`)
+
+**구현 방식:**
+
+```dart
+// Google 로그인 플로우
+1. GoogleSignIn으로 사용자 인증
+2. GoogleAuthProvider.credential 생성
+3. FirebaseAuth.signInWithCredential로 Firebase 인증
+```
+
+**사용 예시:**
+
+- 로그인 페이지에서 Google 로그인 버튼 클릭 시 사용
+- Provider를 통해 전역 인증 상태 관리
+
+---
+
+### 2. Cloud Firestore
+
+**사용 위치:** `lib/services/firestore_service.dart`
+
+**주요 컬렉션 구조:**
+
+**users/{uid}** - 사용자 프로필 정보
+
+- `school`, `major` - 학교/전공
+- `name`, `age`, `bio` - 기본 정보
+- `profileImageUrl` - 프로필 이미지 URL
+- `latitude`, `longitude` - 위치 정보
+- `styleKeywords`, `personalityKeywords` - 키워드
+- `preferredAppearanceStyles`, `preferredPersonalities`, `preferredHobbies` - 선호 스타일
+- `instagramId`, `kakaoId` - SNS 정보
+
+**users/{uid}/likes/{targetUserId}** - 좋아요 정보
+
+- 서브컬렉션으로 좋아요한 사용자 저장
+
+**users/{uid}/sharedInfo/{targetUserId}** - 정보 공개 기록
+
+- 서브컬렉션으로 공개한 사용자 정보 저장
+
+**chats/{chatRoomId}** - 채팅방 정보
+
+- `participants` - 참여자 배열
+- `lastMessage` - 마지막 메시지
+- `lastMessageAt` - 마지막 메시지 시간
+
+**chats/{chatRoomId}/messages/{messageId}** - 채팅 메시지
+
+- `senderId`, `receiverId` - 송수신자
+- `text` - 메시지 내용
+- `createdAt` - 생성 시간
+
+**주요 메서드:**
+
+- `getCurrentUser()` - 현재 사용자 정보 조회
+- `getUserDocument()` - 특정 사용자 정보 조회
+- `upsertSchoolInfo()` - 학교/전공 정보 저장
+- `upsertProfile()` - 프로필 정보 저장
+- `saveLocation()` - 위치 정보 저장
+- `likeUser()` - 사용자 좋아요
+- `getLikedUserIds()` - 좋아요한 사용자 목록
+- `shareInfoWithUser()` - 정보 공개
+- `sendChatMessage()` - 채팅 메시지 전송
+- `getChatMessages()` - 채팅 메시지 조회
+- `getChatRooms()` - 채팅방 목록 조회
+- `createOrGetChatRoom()` - 채팅방 생성/조회
+
+**쿼리 예시:**
+
+```dart
+// 사용자 목록 조회 (필터링)
+Query query = _db.collection('users')
+  .where(FieldPath.documentId, isNotEqualTo: uid)
+  .where('school', isEqualTo: school)
+  .limit(20);
+
+// 채팅방 목록 조회
+Query query = _db.collection('chats')
+  .where('participants', arrayContains: uid)
+  .orderBy('lastMessageAt', descending: true);
+```
+
+---
+
+### 3. Firebase Storage
+
+**사용 위치:** `lib/services/storage_service.dart`
+
+**주요 기능:**
+
+- 프로필 이미지 업로드 (`uploadProfileImage`)
+- 프로필 이미지 삭제 (`deleteProfileImage`)
+
+**저장 경로 구조:**
+
+```
+profile_images/
+  └── {uid}/
+      └── profile.{extension}
+```
+
+**구현 방식:**
+
+```dart
+1. File 객체를 Storage 참조로 업로드
+2. putFile()로 파일 업로드
+3. getDownloadURL()로 다운로드 URL 획득
+4. Firestore에 URL 저장
+```
+
+**사용 예시:**
+
+- 프로필 편집 페이지에서 이미지 선택 시 자동 업로드
+- 업로드된 URL을 Firestore 사용자 문서에 저장
+
+---
+
+### 4. Firebase Functions
+
+**사용 현황:**
+
+- 현재 프로젝트에서는 Firebase Functions를 사용하지 않습니다.
+- 모든 비즈니스 로직은 클라이언트 측 Flutter 코드에서 처리됩니다.
+
+---
+
+### Firebase 사용 패턴
+
+**1. 서비스 레이어 패턴:**
+
+- 각 Firebase 서비스를 별도 클래스로 분리
+- `AuthService`, `FirestoreService`, `StorageService`
+- 비즈니스 로직 캡슐화
+
+**2. Provider 패턴:**
+
+- Firebase 데이터를 Provider로 전역 상태 관리
+- `AuthProvider`, `ProfileProvider`, `ChatProvider` 등
+- UI와 데이터 로직 분리
+
+**3. 에러 처리:**
+
+- try-catch로 모든 Firebase 작업 감싸기
+- 사용자 친화적 에러 메시지 표시
+- 로그 출력으로 디버깅 지원
+
+**4. 보안 규칙:**
+
+- Firestore Security Rules로 데이터 접근 제어
+- Storage Security Rules로 파일 접근 제어
+- 사용자별 데이터 격리 (uid 기반)
+
+---
+
 ## 1. Google Maps Flutter
 
 ### 이름
