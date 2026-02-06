@@ -25,10 +25,11 @@
 
 ## 📱 스크린샷 (Screenshots)
 
-| 로그인 / 인증 | 메인 홈 | 스마일 감지 | 채팅 화면 |
-| :---: | :---: | :---: | :---: |
-| <img src="" alt="Login" width="200" /> | <img src="" alt="Home" width="200" /> | <img src="" alt="Smile" width="200" /> | <img src="" alt="Chat" width="200" /> |
-> *스크린샷 이미지를 `assets/screenshots` 폴더에 추가하고 경로를 수정해주세요.*
+| | | | |
+|:---:|:---:|:---:|:---:|
+| <img src="assets/screenshots/IMG_8450.PNG" width="200" /> | <img src="assets/screenshots/IMG_8451.PNG" width="200" /> | <img src="assets/screenshots/IMG_8452.PNG" width="200" /> | <img src="assets/screenshots/IMG_8455.PNG" width="200" /> |
+| <img src="assets/screenshots/IMG_8456.PNG" width="200" /> | <img src="assets/screenshots/IMG_8457.PNG" width="200" /> | <img src="assets/screenshots/IMG_8458.PNG" width="200" /> | <img src="assets/screenshots/IMG_8459.PNG" width="200" /> |
+| <img src="assets/screenshots/IMG_8460.PNG" width="200" /> | <img src="assets/screenshots/IMG_8461.PNG" width="200" /> | <img src="assets/screenshots/IMG_8469.PNG" width="200" /> | <img src="assets/screenshots/IMG_8481.PNG" width="200" /> |
 
 <br/>
 

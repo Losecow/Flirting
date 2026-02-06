@@ -5,50 +5,72 @@
 *.swp
 .DS_Store
 .atom/
-.build/
 .buildlog/
 .history
 .svn/
 .swiftpm/
-migrate_working_dir/
 
-# IntelliJ related
+# IntelliJ
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code
+.vscode/
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Flutter/Dart
 .dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
+.packages
 .pub/
-/build/
-/coverage/
+build/
+coverage/
+doc/api/
+.flutter-plugins
+.flutter-plugins-dependencies
 
-# Symbolication related
+# Android
+android/gradle-wrapper.properties
+android/local.properties
+android/.gradle
+**/android/app/release/*.keystore
+**/android/app/*.jks
+**/android/app/key.properties
+android/app/debug
+android/app/profile
+android/app/release
+
+# iOS
+ios/.generated/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Pods/
+ios/Podfile.lock
+**/ios/**/derived_data/
+
+# macOS
+macos/Flutter/ephemeral/
+macos/Pods/
+macos/Podfile.lock
+
+# Web
+web/build/
+
+# Windows
+windows/flutter/ephemeral/
+
+# Linux
+linux/flutter/ephemeral/
+
+# Symbolication & Obfuscation
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-
-# Firebase configuration files (contains sensitive information)
+# Firebase & Secrets (Preserved)
 **/google-services.json
 **/GoogleService-Info.plist
-ios/Runner/GoogleService-Info.plist
-android/app/google-services.json
-
-# API Keys (contains sensitive information)
+**/info.plist
 lib/config/api_key.dart
