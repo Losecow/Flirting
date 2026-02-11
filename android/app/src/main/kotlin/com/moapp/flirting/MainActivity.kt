@@ -1,4 +1,4 @@
-package com.moapp.fluting
+package com.moapp.flirting
 
 import io.flutter.embedding.android.FlutterActivity
 

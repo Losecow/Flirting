@@ -9,7 +9,7 @@
 
 ### Android 설정
 1. Firebase Console에서 Android 앱 추가
-   - 패키지 이름: `com.moapp.fluting`
+   - 패키지 이름: `com.moapp.flirting`
 2. `google-services.json` 파일 다운로드
 3. 다운로드한 `google-services.json` 파일을 `android/app/` 디렉토리에 복사
 

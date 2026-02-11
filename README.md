@@ -61,8 +61,8 @@
 
 1. **레포지토리 클론**
    ```bash
-   git clone https://github.com/your-username/fluting.git
-   cd fluting
+   git clone https://github.com/your-username/flirting.git
+   cd flirting
    ```
 
 2. **패키지 설치**

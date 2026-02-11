@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = fluting
+PRODUCT_NAME = flirting
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.moapp.fluting
+PRODUCT_BUNDLE_IDENTIFIER = com.moapp.flirting
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 com.moapp. All rights reserved.

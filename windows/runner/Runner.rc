@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.moapp" "\0"
-            VALUE "FileDescription", "fluting" "\0"
+            VALUE "FileDescription", "flirting" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "fluting" "\0"
+            VALUE "InternalName", "flirting" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.moapp. All rights reserved." "\0"
-            VALUE "OriginalFilename", "fluting.exe" "\0"
-            VALUE "ProductName", "fluting" "\0"
+            VALUE "OriginalFilename", "flirting.exe" "\0"
+            VALUE "ProductName", "flirting" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
