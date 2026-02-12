@@ -1,6 +1,6 @@
-# 💘 Fluting (플루팅)
+# 💘 Flirting (플루팅)
 
-**Fluting**은 AI와 스마일 감지 기술을 결합한 새로운 감각의 소셜/데이팅 애플리케이션입니다.
+**Flirting**은 AI와 스마일 감지 기술을 결합한 새로운 감각의 소셜/데이팅 애플리케이션입니다.
 사용자의 미소를 인식하고, AI를 활용하여 더욱 즐거운 매칭 경험을 제공합니다.
 
 ![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white)
@@ -104,4 +104,4 @@ lib/
 
 ---
 
-Copyright © 2026 Fluting. All Rights Reserved.
+Copyright © 2026 Flirting. All Rights Reserved.
